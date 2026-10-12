@@ -11,13 +11,18 @@ interface ServerListProps {
 const ServerListItem: React.FC<{ server: PlexServer; onEdit: (server: PlexServer) => void; onRemove: (id: number) => void }> = ({ server, onEdit, onRemove }) => {
     const { t } = useTranslation();
     const [status, setStatus] = React.useState<'checking' | 'online' | 'offline'>('checking');
+    const [statusError, setStatusError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         let isMounted = true;
         serversApi.checkStatus(server.id).then((res) => {
-            if (isMounted) setStatus(res.data.status);
-        }).catch(() => {
-            if (isMounted) setStatus('offline');
+            if (!isMounted) return;
+            setStatus(res.data.status);
+            setStatusError(res.data.error || null);
+        }).catch((err) => {
+            if (!isMounted) return;
+            setStatus('offline');
+            setStatusError(err.response?.data?.error || err.message || null);
         });
         return () => { isMounted = false; };
     }, [server.id]);
@@ -41,6 +46,9 @@ const ServerListItem: React.FC<{ server: PlexServer; onEdit: (server: PlexServer
                         {status === 'offline' && <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20 leading-none">Offline</span>}
                     </div>
                     <div className="text-xs text-slate-500 truncate w-full text-left">{formatUrl(server.tautulli_url)}</div>
+                    {status === 'offline' && statusError && (
+                        <div className="text-[11px] text-red-400/90 w-full text-left break-words" title={statusError}>{statusError}</div>
+                    )}
                 </div>
             </div>
             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

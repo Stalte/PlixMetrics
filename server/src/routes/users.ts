@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import axios from 'axios';
 import { getAllServersWithKeys } from './servers.js';
+import { tautulli, isTemporarilyDown } from '../services/tautulli.js';
 import { UserTableItem } from '../types.js';
 
 const router = Router();
@@ -32,55 +32,31 @@ router.get('/', async (req, res) => {
         await Promise.allSettled(
             servers.map(async (server) => {
                 try {
-                    // Fast health check before heavy query
-                    try {
-                        await axios.get(`${server.tautulli_url}/api/v2`, {
-                            params: { apikey: server.api_key_secret, cmd: 'status' },
-                            timeout: 2000
-                        });
-                    } catch (e) {
-                        return; // Skip if offline or unresponsive
-                    }
+                    if (isTemporarilyDown(server.id)) return;
 
                     // --- Fetch users table and recent history IN PARALLEL for zero extra latency ---
                     const [usersResult, historyResult] = await Promise.allSettled([
-                        axios.get(`${server.tautulli_url}/api/v2`, {
-                            params: {
-                                apikey: server.api_key_secret,
-                                cmd: 'get_users_table',
-                                length: 1000,
-                                order_column: 'last_seen',
-                                order_dir: 'desc'
-                            },
-                            timeout: 30000
-                        }),
-                        axios.get(`${server.tautulli_url}/api/v2`, {
-                            params: {
-                                apikey: server.api_key_secret,
-                                cmd: 'get_history',
-                                length: 1000,
-                                order_column: 'date',
-                                order_dir: 'desc'
-                            },
-                            timeout: 15000
-                        })
+                        tautulli(server, 'get_users_table', {
+                            length: 1000,
+                            order_column: 'last_seen',
+                            order_dir: 'desc'
+                        }, { timeout: 30000 }),
+                        tautulli(server, 'get_history', {
+                            length: 1000,
+                            order_column: 'date',
+                            order_dir: 'desc'
+                        }, { timeout: 30000 })
                     ]);
 
                     if (usersResult.status !== 'fulfilled') return;
-                    const usersResponse = usersResult.value;
 
-                    if (usersResponse.data.response.result !== 'success') {
-                        console.warn(`[Users] Failed to fetch users from server ${server.name}:`, usersResponse.data.response.message);
-                        return;
-                    }
-
-                    const usersRows = usersResponse.data.response.data.data;
+                    const usersRows = usersResult.value?.data;
                     if (!Array.isArray(usersRows)) return;
 
                     // --- Build IP map from history (more reliable than get_users_table.ip_address) ---
                     const userIpMap = new Map<string, string>(); // username -> most recent real ip
-                    if (historyResult.status === 'fulfilled' && historyResult.value.data.response.result === 'success') {
-                        const historyRows = historyResult.value.data.response.data.data;
+                    if (historyResult.status === 'fulfilled') {
+                        const historyRows = historyResult.value?.data;
                         if (Array.isArray(historyRows)) {
                             for (const entry of historyRows) {
                                 const username = entry.user;

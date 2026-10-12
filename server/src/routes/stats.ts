@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import axios from 'axios';
 import { getAllServersWithKeys } from './servers.js';
+import { tautulli, isTemporarilyDown } from '../services/tautulli.js';
 import { WatchStatsResponse } from '../types.js';
 import { lookupIp } from '../services/geoip.js';
 
@@ -47,35 +47,21 @@ router.get('/', async (req, res) => {
         const results = await Promise.allSettled(
             servers.map(async (server) => {
                 try {
-                    // Fast health check to avoid hanging on offline servers
-                    try {
-                        await axios.get(`${server.tautulli_url}/api/v2`, {
-                            params: { apikey: server.api_key_secret, cmd: 'status' },
-                            timeout: 2000
-                        });
-                    } catch (e) {
-                        return null;
-                    }
+                    // Skip servers that refused the connection moments ago
+                    if (isTemporarilyDown(server.id)) return null;
 
-                    const res = await axios.get(`${server.tautulli_url}/api/v2`, {
-                        params: {
-                            apikey: server.api_key_secret,
-                            cmd: 'get_home_stats',
-                            time_range: days,
-                            stats_type: stats_type_num
-                        },
-                        timeout: 10000
+                    const data = await tautulli(server, 'get_home_stats', {
+                        time_range: days,
+                        stats_type: stats_type_num
                     });
-
-                    if (res.data.response.result !== 'success') return null;
 
                     return {
                         server_name: server.name,
                         server_id: server.id,
-                        data: res.data.response.data
+                        data
                     };
                 } catch (error) {
-                    console.error(`[Stats] Failed to fetch from ${server.name}:`, error);
+                    // Details are logged by the Tautulli client
                     return null;
                 }
             })
@@ -372,23 +358,7 @@ router.get('/user/:username', async (req, res) => {
         await Promise.allSettled(
             servers.map(async (server) => {
                 try {
-                    // Fast health check before heavy query
-                    try {
-                        await axios.get(`${server.tautulli_url}/api/v2`, {
-                            params: { apikey: server.api_key_secret, cmd: 'status' },
-                            timeout: 2000
-                        });
-                    } catch (e) {
-                        return; // Skip if offline or unresponsive
-                    }
-
-                    // Fetch generic history for user to calculate totals and timeline
-                    const apiParams: any = {
-                        apikey: server.api_key_secret,
-                        cmd: 'get_history',
-                        user: decodeUser,
-                        length: 5000 // Catch broad history
-                    };
+                    if (isTemporarilyDown(server.id)) return;
 
                     let cutoffTimestamp = 0;
                     if (days > 0) {
@@ -398,15 +368,15 @@ router.get('/user/:username', async (req, res) => {
                     }
 
 
-                    const historyRes = await axios.get(`${server.tautulli_url}/api/v2`, {
-                        params: apiParams,
-                        timeout: 20000 // Increased timeout for larger payload
-                    });
+                    // Fetch generic history for user to calculate totals and timeline
+                    const historyData = await tautulli(server, 'get_history', {
+                        user: decodeUser,
+                        length: 5000 // Catch broad history
+                    }, { timeout: 30000 });
 
-                    if (historyRes.data.response.result !== 'success') return;
-
-                    const history = historyRes.data.response.data.data;
-                    console.log(`[Stats] Server ${server.name} returned ${history.length} items`);
+                    const history = historyData?.data;
+                    if (!Array.isArray(history)) return;
+                    console.debug(`[Stats] Server ${server.name} returned ${history.length} history items for ${decodeUser}`);
 
                     // Fetch user specific stats if available (often requires user_id, which we might not have easily, so relying on history is safer)
 
