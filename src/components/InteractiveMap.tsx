@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { ActiveSession } from '../types';
+import { useMapConfig } from '../hooks/useMapConfig';
+import { getMapTileUrl } from '../api/client';
 
 interface InteractiveMapProps {
     sessions: ActiveSession[];
@@ -110,6 +112,7 @@ const createClusterCustomIcon = (cluster: any) => {
 };
 
 const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableClustering = true, onUserClick, hideControls = false }) => {
+    const { data: mapConfig } = useMapConfig();
     const validSessions = useMemo(() => {
         return sessions.filter(s =>
             s.latitude !== undefined &&
@@ -136,19 +139,22 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableCluster
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%", background: '#0f172a' }}
             zoomControl={false}
-            attributionControl={false}
+            attributionControl={!hideControls}
             minZoom={3}
             maxZoom={12}
         >
             <AutoZoom sessions={validSessions} />
             {!hideControls && <CustomZoomControl />}
 
-            <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                subdomains="abcd"
-                maxZoom={20}
-            />
+            {mapConfig && (
+                <TileLayer
+                    key={`${mapConfig.provider}-${mapConfig.version}`}
+                    url={getMapTileUrl(mapConfig.version)}
+                    attribution={mapConfig.attribution}
+                    maxNativeZoom={mapConfig.max_zoom}
+                    maxZoom={20}
+                />
+            )}
 
             {enableClustering ? (
                 <MarkerClusterGroup

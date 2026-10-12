@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ServerList } from './ServerList';
 import { PlexServer } from '../types';
 import { getLogsUrl } from '../api/client';
+import { MapSettings } from './MapSettings';
 
 interface ServerListModalProps {
     onClose: () => void;
@@ -35,6 +36,7 @@ export const ServerListModal: React.FC<ServerListModalProps> = ({ onClose, onEdi
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6">
                     <ServerList onEdit={onEditServer} />
+                    <MapSettings />
                 </div>
 
                 {/* Footer */}

@@ -35,3 +35,12 @@ body {
   background: rgba(100, 116, 139, 1);
   /* Slate 500 */
 }
+/* Map tile provider credit (required by most providers), kept small and dark */
+.leaflet-container .leaflet-control-attribution {
+    background: rgba(15, 23, 42, 0.6);
+    color: #64748b;
+    font-size: 9px;
+}
+.leaflet-container .leaflet-control-attribution a {
+    color: #94a3b8;
+}
