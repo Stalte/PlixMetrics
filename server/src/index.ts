@@ -43,14 +43,16 @@ app.use('/api/auth', authRouter);
 
 // Protected API Routes (Bypass for localhost, Require Token for others)
 app.use('/api/servers', checkAuth, serversRouter);
-// Short caches share one upstream fetch between open dashboards; history data changes slowly.
-const LIVE_CACHE_MS = 3 * 1000;
-const HISTORY_CACHE_MS = 5 * 60 * 1000;
-app.use('/api/network', checkAuth, cacheResponse(LIVE_CACHE_MS), networkRouter);
-app.use('/api/stats', checkAuth, cacheResponse(HISTORY_CACHE_MS), statsRouter);
-app.use('/api/analytics', checkAuth, cacheResponse(HISTORY_CACHE_MS), analyticsRouter);
+// Short caches share one upstream fetch between open dashboards. History data changes slowly:
+// it is served from cache for 10 minutes, then for up to a day the cached copy is returned
+// instantly while a fresh one is fetched from Tautulli in the background.
+const LIVE_CACHE = { ttlMs: 3 * 1000 };
+const historyCache = (handler: express.RequestHandler) => cacheResponse({ ttlMs: 10 * 60 * 1000, staleMs: 24 * 60 * 60 * 1000, handler });
+app.use('/api/network', checkAuth, cacheResponse(LIVE_CACHE), networkRouter);
+app.use('/api/stats', checkAuth, historyCache(statsRouter), statsRouter);
+app.use('/api/analytics', checkAuth, historyCache(analyticsRouter), analyticsRouter);
 app.use('/api/proxy', checkAuth, proxyRouter);
-app.use('/api/users', checkAuth, cacheResponse(HISTORY_CACHE_MS), usersRouter);
+app.use('/api/users', checkAuth, historyCache(usersRouter), usersRouter);
 app.use('/api/config', checkAuth, configRouter);
 app.use('/api/system', checkAuth, systemRouter);
 app.use('/api/map', checkAuth, mapRouter);

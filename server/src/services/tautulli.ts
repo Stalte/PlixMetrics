@@ -3,8 +3,12 @@ import logger from './logger.js';
 
 const log = logger.child('Tautulli');
 
-/** Default timeout for Tautulli API calls. Large Tautulli databases can take a while. */
-export const TAUTULLI_TIMEOUT_MS = parseInt(process.env.TAUTULLI_TIMEOUT_MS || '', 10) || 20000;
+/**
+ * Default timeout for Tautulli API calls (statistics, history, users). Large Tautulli
+ * databases can take well over a minute for long time ranges, so this is generous;
+ * live activity and connection checks use their own short timeouts.
+ */
+export const TAUTULLI_TIMEOUT_MS = parseInt(process.env.TAUTULLI_TIMEOUT_MS || '', 10) || 120000;
 const SLOW_CALL_MS = 5000;
 
 /** How long a server that refused the connection is skipped by the heavy history endpoints. */

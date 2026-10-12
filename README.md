@@ -198,7 +198,7 @@ Under **Direct Plex connection (optional)** in the server form you can add the P
 
 **Manage Servers** shows why a server is offline (timeout, invalid API key, connection refused, certificate error...). More detail is in the logs (see [Logs](#logs)).
 
-- Large Tautulli databases can be slow to answer. Raise `TAUTULLI_TIMEOUT_MS` (default `20000`) if you see timeouts.
+- Large Tautulli databases can be slow to answer. Statistics calls wait up to `TAUTULLI_TIMEOUT_MS` (default `120000`, 2 minutes). Once loaded, Stats, Analytics and Users are served from cache and refreshed in the background, so pages open instantly after the first load.
 - Using `https://` with a self-signed certificate? Use `http://` on your local network, or set `ALLOW_INSECURE_TLS=true`.
 
 ### Live map style and API key
@@ -295,7 +295,7 @@ $env:PORT=8282; npm start
 | `DATA_DIR` | `./data` | Directory for SQLite database |
 | `JWT_SECRET` | (random) | Secret key for authentication tokens |
 | `NODE_ENV` | `production` | Environment mode |
-| `TAUTULLI_TIMEOUT_MS` | `20000` | Timeout for Tautulli API calls |
+| `TAUTULLI_TIMEOUT_MS` | `120000` | Timeout for Tautulli statistics, history and user calls |
 | `PLEX_TIMEOUT_MS` | `8000` | Timeout for direct Plex calls |
 | `ALLOW_INSECURE_TLS` | `false` | Accept self-signed HTTPS certificates for Tautulli and Plex |
 | `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn` or `error` |
