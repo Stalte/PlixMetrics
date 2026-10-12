@@ -6,6 +6,7 @@ interface ActiveSessionsResponse {
     active_sessions: any[];
     total_stream_count: number;
     total_bandwidth: number;
+    total_transcodes?: number;
 }
 
 export const usePlexNetwork = () => {
@@ -42,6 +43,7 @@ export const usePlexNetwork = () => {
         active_sessions: sessionsQuery.data?.active_sessions || fullStatusQuery.data.active_sessions,
         total_stream_count: sessionsQuery.data?.total_stream_count ?? fullStatusQuery.data.total_stream_count,
         total_bandwidth: sessionsQuery.data?.total_bandwidth ?? fullStatusQuery.data.total_bandwidth,
+        total_transcodes: sessionsQuery.data?.total_transcodes ?? fullStatusQuery.data.total_transcodes,
     } : null;
 
     const loading = fullStatusQuery.isLoading && sessionsQuery.isLoading;

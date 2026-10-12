@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ServerList } from './ServerList';
 import { PlexServer } from '../types';
+import { getLogsUrl } from '../api/client';
 
 interface ServerListModalProps {
     onClose: () => void;
@@ -47,6 +48,14 @@ export const ServerListModal: React.FC<ServerListModalProps> = ({ onClose, onEdi
                         </svg>
                         {t('serverModal.addNewServer')}
                     </button>
+                    <a
+                        href={getLogsUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-center text-xs text-slate-500 hover:text-slate-300 mt-3 transition-colors"
+                    >
+                        {t('serverModal.viewLogs')}
+                    </a>
                 </div>
             </div>
         </div>

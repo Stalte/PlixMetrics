@@ -153,14 +153,24 @@
         "serverAdded": "Server \"{{name}}\" added successfully",
         "failedToSave": "Failed to save server. Check details.",
         "manageServers": "Manage Servers",
-        "addNewServer": "Add New Server"
+        "addNewServer": "Add New Server",
+        "viewLogs": "View logs",
+        "plexSection": "Direct Plex connection (optional)",
+        "plexSectionHint": "Reads live sessions straight from Plex for a faster, more current dashboard. Tautulli is still used for history and statistics.",
+        "plexUrl": "Plex URL",
+        "plexUrlPlaceholder": "http://your-server-ip:32400",
+        "plexToken": "Plex Token",
+        "plexTokenPlaceholder": "YOUR_PLEX_TOKEN",
+        "plexTokenHelp": "How to find your Plex token"
     },
     "serverList": {
         "loadingServers": "Loading servers...",
         "noServersAdded": "No servers added yet.",
         "editServer": "Edit Server",
         "removeServer": "Remove Server",
-        "confirmRemove": "Are you sure you want to remove this server?"
+        "confirmRemove": "Are you sure you want to remove this server?",
+        "plexLive": "Plex live",
+        "degraded": "Partial"
     },
     "session": {
         "hoursMinutesLeft": "{{h}}h {{m}}m left",

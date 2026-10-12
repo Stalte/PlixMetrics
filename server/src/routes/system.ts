@@ -2,6 +2,7 @@
 import express from 'express';
 import { SystemService } from '../services/system.js';
 import { AuthService } from '../services/auth.js';
+import { readLogTail, LOG_FILE } from '../services/logger.js';
 
 const router = express.Router();
 
@@ -32,6 +33,16 @@ router.post('/update', async (req, res) => {
         });
 
         res.json({ message: 'Update started. The server will update and may restart.' });
+    } catch (e) {
+        res.status(500).json({ error: (e as Error).message });
+    }
+});
+
+// Recent application log lines as plain text (GET /api/system/logs?lines=500)
+router.get('/logs', (req, res) => {
+    const lines = Math.min(Math.max(parseInt(req.query.lines as string, 10) || 500, 1), 10000);
+    try {
+        res.type('text/plain').send(readLogTail(lines) || `No log entries yet (${LOG_FILE})`);
     } catch (e) {
         res.status(500).json({ error: (e as Error).message });
     }

@@ -10,14 +10,19 @@ interface ServerListProps {
 
 const ServerListItem: React.FC<{ server: PlexServer; onEdit: (server: PlexServer) => void; onRemove: (id: number) => void }> = ({ server, onEdit, onRemove }) => {
     const { t } = useTranslation();
-    const [status, setStatus] = React.useState<'checking' | 'online' | 'offline'>('checking');
+    const [status, setStatus] = React.useState<'checking' | 'online' | 'degraded' | 'offline'>('checking');
+    const [statusError, setStatusError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         let isMounted = true;
         serversApi.checkStatus(server.id).then((res) => {
-            if (isMounted) setStatus(res.data.status);
-        }).catch(() => {
-            if (isMounted) setStatus('offline');
+            if (!isMounted) return;
+            setStatus(res.data.status);
+            setStatusError(res.data.error || null);
+        }).catch((err) => {
+            if (!isMounted) return;
+            setStatus('offline');
+            setStatusError(err.response?.data?.error || err.message || null);
         });
         return () => { isMounted = false; };
     }, [server.id]);
@@ -34,13 +39,18 @@ const ServerListItem: React.FC<{ server: PlexServer; onEdit: (server: PlexServer
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 flex items-center justify-between group hover:border-slate-600 transition-colors">
             <div className="flex items-center gap-3 overflow-hidden">
-                <div className={`h-2 w-2 min-w-[8px] rounded-full transition-colors ${status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : status === 'offline' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'bg-slate-500 animate-pulse'}`}></div>
+                <div className={`h-2 w-2 min-w-[8px] rounded-full transition-colors ${status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : status === 'degraded' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : status === 'offline' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 'bg-slate-500 animate-pulse'}`}></div>
                 <div className="min-w-0 flex flex-col items-start text-left">
                     <div className="font-medium text-slate-200 text-sm truncate w-full flex items-center gap-2">
                         {server.name}
                         {status === 'offline' && <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20 leading-none">Offline</span>}
+                        {status === 'degraded' && <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 leading-none">{t('serverList.degraded')}</span>}
+                        {server.plex_url && <span className="text-[10px] bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/20 leading-none">{t('serverList.plexLive')}</span>}
                     </div>
                     <div className="text-xs text-slate-500 truncate w-full text-left">{formatUrl(server.tautulli_url)}</div>
+                    {(status === 'offline' || status === 'degraded') && statusError && (
+                        <div className="text-[11px] text-red-400/90 w-full text-left break-words" title={statusError}>{statusError}</div>
+                    )}
                 </div>
             </div>
             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

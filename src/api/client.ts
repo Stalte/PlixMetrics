@@ -11,11 +11,19 @@ export const api = axios.create({
 });
 
 // Server API
+export interface ServerPayload {
+    name: string;
+    tautulli_url: string;
+    api_key: string;
+    plex_url?: string;
+    plex_token?: string;
+}
+
 export const serversApi = {
     list: () => api.get('/api/servers'),
-    add: (data: { name: string; tautulli_url: string; api_key: string }) =>
+    add: (data: ServerPayload) =>
         api.post('/api/servers', data),
-    update: (id: number, data: { name: string; tautulli_url: string; api_key: string }) =>
+    update: (id: number, data: ServerPayload) =>
         api.put(`/api/servers/${id}`, data),
     delete: (id: number) => api.delete(`/api/servers/${id}`),
     checkStatus: (id: number) => api.get(`/api/servers/${id}/status`)
@@ -68,6 +76,14 @@ export const getImageProxyUrl = (serverId: number | string, img: string, width =
     }
 
     return `/api/proxy/image?${params.toString()}`;
+};
+
+// Plain-text application log (opened in a new tab, so the token goes in the query string)
+export const getLogsUrl = (lines = 1000) => {
+    const params = new URLSearchParams({ lines: String(lines) });
+    const token = localStorage.getItem('plix_auth_token');
+    if (token) params.append('token', token);
+    return `/api/system/logs?${params.toString()}`;
 };
 
 // Request interceptor for adding token

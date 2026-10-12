@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import axios from 'axios';
+import { upstream } from '../services/upstream.js';
+import { plexImageUrl } from '../services/plex.js';
 import db from '../db/index.js';
 import { PlexServer } from '../types.js';
 import fs from 'fs';
@@ -95,6 +96,10 @@ function buildImageCandidates(
     const ratingKey = getRatingKeyFromImagePath(normalizedImg);
     const candidates: ImageCandidate[] = [];
 
+    // Straight from Plex when it is configured: one hop instead of going through Tautulli
+    const plexUrl = plexImageUrl(server, normalizedImg, width, height);
+    if (plexUrl) candidates.push({ label: 'plex', url: plexUrl });
+
     const apiImgParams = new URLSearchParams();
     apiImgParams.append('apikey', server.api_key_secret);
     apiImgParams.append('cmd', 'pms_image_proxy');
@@ -135,7 +140,7 @@ function buildImageCandidates(
 }
 
 async function fetchImageCandidate(candidate: ImageCandidate): Promise<ImageFetchResult> {
-    const response = await axios.get<ArrayBuffer>(candidate.url, {
+    const response = await upstream.get<ArrayBuffer>(candidate.url, {
         responseType: 'arraybuffer',
         timeout: 15000,
         headers: { 'User-Agent': 'PlixMetrics/1.0' },
@@ -251,7 +256,7 @@ router.get('/image', async (req: Request, res: Response) => {
         }
 
     } catch (error: any) {
-        console.error('[Proxy] Critical Error:', error.message);
+        console.warn('[Proxy] Image fetch failed:', error.message);
         if (res.headersSent || res.writableEnded) return;
         if (error.response && error.response.status === 401) {
             return res.status(502).send('Upstream Authentication Failed');
