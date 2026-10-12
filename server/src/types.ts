@@ -42,6 +42,16 @@ export interface NetworkStatus {
     active_sessions: ActiveSession[];
     offline_servers_count?: number;
     total_servers_count?: number;
+    servers?: ServerNetworkStatus[];
+}
+
+export interface ServerNetworkStatus {
+    id: number;
+    name: string;
+    online: boolean;
+    live_source?: 'tautulli' | 'plex';
+    error?: string;
+    user_count: number | null;
 }
 
 export interface StatItem {

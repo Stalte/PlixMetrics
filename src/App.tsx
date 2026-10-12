@@ -213,7 +213,10 @@ function AppDashboard() {
                                         {data?.total_transcodes || 0}
                                     </div>
                                 </div>
-                                <div className="md:border-l md:border-white/5 md:pl-8">
+                                <div
+                                    className="md:border-l md:border-white/5 md:pl-8"
+                                    title={data?.servers?.map(s => `${s.name}: ${s.user_count ?? '?'}`).join('\n')}
+                                >
                                     <h3 className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-1">{t('dashboard.totalUsers')}</h3>
                                     <div className="text-2xl sm:text-3xl font-black text-slate-200 leading-none">
                                         {data?.total_users || 0}
