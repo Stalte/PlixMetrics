@@ -243,7 +243,8 @@
         "save": "Save map settings",
         "testing": "Testing...",
         "saved": "Map settings saved",
-        "dayNight": "Show day and night"
+        "dayNight": "Show day and night",
+        "labels": "Show borders and place names (countries, states and cities as you zoom in)"
     },
     "geoip": {
         "title": "Location accuracy (MaxMind)",

@@ -89,12 +89,25 @@ export const MAP_PROVIDERS: MapProvider[] = [
 
 export const DEFAULT_PROVIDER = 'bluemarble';
 
+/**
+ * Transparent overlay with country, state and city borders and names, drawn on top of any
+ * map style. Esri's reference layer is designed for imagery (light labels with dark halos),
+ * needs no key, and shows more detail as you zoom in.
+ */
+export const LABELS_LAYER = {
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
+    attribution: 'Labels &copy; Esri'
+};
+
 export interface MapSettings {
     provider: string;
     api_key: string;
     custom_url: string;
     /** Shade the part of the world where it is currently night. */
     day_night: boolean;
+    /** Show borders and place names on top of the map. */
+    labels: boolean;
     updated_at: string;
 }
 
@@ -103,6 +116,7 @@ const KEYS = {
     api_key: 'map_api_key',
     custom_url: 'map_custom_url',
     day_night: 'map_day_night',
+    labels: 'map_labels',
     updated_at: 'map_updated_at'
 } as const;
 
@@ -118,6 +132,7 @@ export function getMapSettings(): MapSettings {
         api_key: readConfig(KEYS.api_key),
         custom_url: readConfig(KEYS.custom_url),
         day_night: readConfig(KEYS.day_night) !== 'false',
+        labels: readConfig(KEYS.labels) !== 'false',
         updated_at: readConfig(KEYS.updated_at) || '0'
     };
 }
@@ -130,6 +145,7 @@ export function saveMapSettings(settings: Omit<MapSettings, 'updated_at'>): MapS
         upsert.run(KEYS.api_key, settings.api_key);
         upsert.run(KEYS.custom_url, settings.custom_url);
         upsert.run(KEYS.day_night, String(settings.day_night));
+        upsert.run(KEYS.labels, String(settings.labels));
         upsert.run(KEYS.updated_at, updatedAt);
     })();
     return { ...settings, updated_at: updatedAt };

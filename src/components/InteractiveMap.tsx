@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Pane, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { ActiveSession } from '../types';
 import { useMapConfig } from '../hooks/useMapConfig';
-import { getMapTileUrl } from '../api/client';
+import { getMapLabelsUrl, getMapTileUrl } from '../api/client';
 import { DayNightLayer } from './DayNightLayer';
 
 interface InteractiveMapProps {
@@ -157,6 +157,17 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableCluster
                 />
             )}
             {mapConfig?.day_night && <DayNightLayer />}
+            {mapConfig?.labels && (
+                // Above the night shading so names stay readable, below the stream markers
+                <Pane name="map-labels" style={{ zIndex: 450, pointerEvents: 'none' }}>
+                    <TileLayer
+                        url={getMapLabelsUrl()}
+                        attribution={mapConfig.labels_attribution}
+                        maxNativeZoom={mapConfig.labels_max_zoom}
+                        maxZoom={20}
+                    />
+                </Pane>
+            )}
 
             {enableClustering ? (
                 <MarkerClusterGroup

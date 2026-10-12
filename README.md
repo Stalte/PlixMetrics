@@ -215,6 +215,8 @@ The map works out of the box with NASA's Blue Marble earth imagery and live day/
 
 Keys are checked before they are saved and stay on the PlixMetrics server (map tiles are loaded through it and cached in `DATA_DIR/cache/tiles`). Day/night shading can be turned off in the same place.
 
+Country, state and city borders and names are drawn on top of every map style, with more detail as you zoom in (Esri's free World Boundaries and Places layer, no key). Turn them off with **Show borders and place names**.
+
 ### Location accuracy (MaxMind)
 
 Stream locations come from the viewer's IP address. The built-in database often only knows the country, so some streams appear in the middle of a country. For city-level locations:
