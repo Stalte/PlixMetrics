@@ -617,9 +617,14 @@ function AppDashboard() {
                         />
                     </div>
 
+                    {/* Dark panel behind the session list so map labels don't show through */}
+                    <div className={`hidden md:block absolute inset-y-0 right-0 w-[500px] z-[5] pointer-events-none bg-gradient-to-l from-slate-950/95 via-slate-950/90 to-transparent backdrop-blur-sm transition-opacity duration-700 ${showZenSessions ? 'opacity-100' : 'opacity-0'}`}
+                        style={{ maskImage: 'linear-gradient(to left, black 80%, transparent)', WebkitMaskImage: 'linear-gradient(to left, black 80%, transparent)' }}
+                    ></div>
+
                     {/* Floating Info Overlay Over Map */}
                     <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none h-full pb-12">
-                        <div className="flex gap-8">
+                        <div className="flex gap-8 px-6 py-4 rounded-2xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-2xl">
                             <div className="flex flex-col items-start pointer-events-auto">
                                 <span className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 drop-shadow-md">{t('dashboard.activeStreams')}</span>
                                 <span className="text-[58px] font-black text-cyan-400 leading-none drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">{data?.total_stream_count || 0}</span>

@@ -25,7 +25,7 @@ export const LiveMap: React.FC<LiveMapProps> = ({ sessions, onUserClick, hideCon
     // session list on the right, which is only shown on wider screens.
     const isWide = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
     const zenInsets = React.useMemo(
-        () => ({ top: 150, right: showSessions && isWide ? 480 : 60, bottom: 80, left: 60 }),
+        () => ({ top: 150, right: showSessions && isWide ? 520 : 60, bottom: 80, left: 60 }),
         [showSessions, isWide]
     );
 
