@@ -111,6 +111,7 @@ export interface GeoipStatus {
     edition: 'GeoLite2-City' | 'GeoIP2-City';
     database_date: string | null;
     downloaded_at: string | null;
+    source: 'download' | 'upload' | null;
     last_error: string | null;
 }
 
@@ -118,6 +119,11 @@ export const geoipApi = {
     getConfig: () => api.get<GeoipStatus>('/api/geoip/config'),
     saveConfig: (data: { account_id: string; license_key?: string; edition: string }) =>
         api.put<GeoipStatus>('/api/geoip/config', data),
+    upload: (file: File) =>
+        api.post<GeoipStatus>('/api/geoip/upload', file, {
+            headers: { 'Content-Type': 'application/octet-stream' },
+            timeout: 5 * 60 * 1000
+        }),
     disable: () => api.delete<GeoipStatus>('/api/geoip/config')
 };
 

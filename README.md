@@ -225,6 +225,8 @@ Stream locations come from the viewer's IP address. The built-in database often 
 
 The GeoLite2 City database is downloaded to `DATA_DIR/geoip` and updated weekly. Paid GeoIP2 City is also supported.
 
+**Prefer to upload it yourself?** On MaxMind's [GeoLite download page](https://www.maxmind.com/en/accounts/current/geoip/downloads), click **Download GZIP** next to **GeoLite City** (edition `GeoLite2-City`), then use **Upload the database yourself** in the same section. The `.tar.gz` or the `.mmdb` inside it both work. Uploaded files are not updated automatically, so upload a new one now and then, or add your account ID and key for automatic updates. Only the City database is useful here; Country and ASN files are rejected.
+
 Streams from your own network (192.168.x.x and similar) have no public location, so they are shown at your server's location. It is detected from your public IP; set `HOME_LAT` and `HOME_LON` to place them exactly.
 
 ### 3. Mobile App (PWA) Setup 📱
@@ -359,6 +361,7 @@ PlixMetrics/
 | `/api/system/version` | GET | Check for updates |
 | `/api/map/config` | GET/PUT | Live map provider and API key |
 | `/api/geoip/config` | GET/PUT/DELETE | MaxMind location database |
+| `/api/geoip/upload` | POST | Upload a GeoLite2/GeoIP2 City `.mmdb` or `.tar.gz` |
 | `/api/system/logs` | GET | Latest application log lines (`?lines=500`) |
 | `/api/health` | GET | Health check |
 
