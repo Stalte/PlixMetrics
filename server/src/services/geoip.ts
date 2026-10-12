@@ -9,10 +9,12 @@ const log = logger.child('GeoIP');
 const GEO_CACHE_MAX_AGE_DAYS = 90;
 const GEO_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-interface GeoLocation {
+export interface GeoLocation {
     lat: number;
     lon: number;
     city?: string;
+    /** State or province (a code such as "CA" from the built-in database, a name from MaxMind). */
+    region?: string;
     country?: string;
 }
 
@@ -65,9 +67,9 @@ let homeLocation: GeoLocation | null = null;
 
 function locate(ip: string): GeoLocation | null {
     const mm = maxmindLookup(ip);
-    if (mm) return { lat: mm.lat, lon: mm.lon, city: mm.city, country: mm.country };
+    if (mm) return { lat: mm.lat, lon: mm.lon, city: mm.city, region: mm.region, country: mm.country };
     const geo = geoip.lookup(ip);
-    if (geo && geo.ll) return { lat: geo.ll[0], lon: geo.ll[1], city: geo.city, country: geo.country };
+    if (geo && geo.ll) return { lat: geo.ll[0], lon: geo.ll[1], city: geo.city || undefined, region: geo.region || undefined, country: geo.country || undefined };
     return null;
 }
 
@@ -104,7 +106,7 @@ export async function batchGeoLookup(ips: string[]): Promise<Map<string, GeoLoca
     rows.forEach(row => {
         const originalIp = row.ip.replace(/_/g, '.');
         if (row.lat && row.lon) {
-            result.set(originalIp, { lat: row.lat, lon: row.lon, city: row.city, country: row.country });
+            result.set(originalIp, { lat: row.lat, lon: row.lon, city: row.city, region: row.region, country: row.country });
         }
     });
 
@@ -124,17 +126,17 @@ export function lookupIp(ip: string): GeoLocation | null {
     const cached = stmt.get(sanitizedIp) as any;
 
     if (cached && cached.lat && cached.lon) {
-        return { lat: cached.lat, lon: cached.lon, city: cached.city, country: cached.country };
+        return { lat: cached.lat, lon: cached.lon, city: cached.city, region: cached.region, country: cached.country };
     }
 
     // MaxMind when configured, otherwise the built-in geoip-lite data
     const location = locate(ip);
     if (location) {
         const insertStmt = db.prepare(`
-            INSERT OR REPLACE INTO geo_cache (ip, lat, lon, city, country, updated_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            INSERT OR REPLACE INTO geo_cache (ip, lat, lon, city, region, country, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
         `);
-        insertStmt.run(sanitizedIp, location.lat, location.lon, location.city, location.country);
+        insertStmt.run(sanitizedIp, location.lat, location.lon, location.city ?? null, location.region ?? null, location.country ?? null);
     }
     return location;
 }
@@ -142,15 +144,15 @@ export function lookupIp(ip: string): GeoLocation | null {
 /**
  * Batch save new geo cache entries
  */
-export function saveGeoCache(entries: Array<{ ip: string; lat: number; lon: number; city?: string; country?: string }>) {
+export function saveGeoCache(entries: Array<{ ip: string } & GeoLocation>) {
     const stmt = db.prepare(`
-        INSERT OR REPLACE INTO geo_cache (ip, lat, lon, city, country, updated_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        INSERT OR REPLACE INTO geo_cache (ip, lat, lon, city, region, country, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
     `);
 
     const insertMany = db.transaction((items: typeof entries) => {
         for (const item of items) {
-            stmt.run(item.ip.replace(/\./g, '_'), item.lat, item.lon, item.city, item.country);
+            stmt.run(item.ip.replace(/\./g, '_'), item.lat, item.lon, item.city ?? null, item.region ?? null, item.country ?? null);
         }
     });
 

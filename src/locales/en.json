@@ -175,7 +175,8 @@
     "session": {
         "hoursMinutesLeft": "{{h}}h {{m}}m left",
         "minutesLeft": "{{m}}m left",
-        "viewUserProfile": "View User Profile"
+        "viewUserProfile": "View User Profile",
+        "localNetwork": "Local network"
     },
     "statCard": {
         "shareOnTelegram": "Share on Telegram"
