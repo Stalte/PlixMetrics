@@ -97,7 +97,7 @@ echo YOUR_TOKEN | docker login ghcr.io -u Stalte --password-stdin
 - **Network Type**: `bridge`
 - **Port**: container `8282` → host `8282`
 - **Path**: container `/data` → host `/mnt/user/appdata/plixmetrics`
-- **Variables** (optional): `LOG_LEVEL=info`, `TAUTULLI_TIMEOUT_MS=20000`
+- **Variables** (optional): `LOG_LEVEL=info`, `TAUTULLI_TIMEOUT_MS=180000` (only if statistics still time out)
 
 Logs are then at `/mnt/user/appdata/plixmetrics/logs/plixmetrics.log`. To update, use **Check for Updates** / **Force Update** on the container.
 
