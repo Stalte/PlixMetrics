@@ -17,6 +17,13 @@ fs.mkdirSync(TILE_CACHE_DIR, { recursive: true });
 // Only log one tile failure per minute, a broken key would otherwise log every tile.
 let lastTileErrorLog = 0;
 
+/** Image type from the file's first bytes (cached tiles are stored without an extension). */
+function imageType(buffer: Buffer): string {
+    if (buffer[0] === 0xff && buffer[1] === 0xd8) return 'image/jpeg';
+    if (buffer.subarray(0, 4).toString('latin1') === 'RIFF') return 'image/webp';
+    return 'image/png';
+}
+
 function publicConfig() {
     const settings = getMapSettings();
     const provider = getProvider(settings.provider);
@@ -24,6 +31,7 @@ function publicConfig() {
         provider: settings.provider,
         has_api_key: Boolean(settings.api_key),
         custom_url: settings.custom_url,
+        day_night: settings.day_night,
         max_zoom: provider.maxZoom,
         attribution: provider.attribution,
         version: settings.updated_at,
@@ -48,6 +56,7 @@ router.put('/config', async (req, res) => {
         ? req.body.api_key.trim()
         : (providerId === current.provider ? current.api_key : '');
     const customUrl = typeof req.body.custom_url === 'string' ? req.body.custom_url.trim() : '';
+    const dayNight = req.body.day_night === undefined ? current.day_night : Boolean(req.body.day_night);
 
     if (provider.requiresKey && !apiKey) {
         return res.status(400).json({ error: `${provider.name} needs an API key` });
@@ -57,7 +66,7 @@ router.put('/config', async (req, res) => {
     }
 
     // Try one tile before saving so a wrong key is reported right away.
-    const candidate = { provider: provider.id, api_key: apiKey, custom_url: customUrl, updated_at: '' };
+    const candidate = { provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight, updated_at: '' };
     const testUrl = buildTileUrl(candidate, 2, 1, 1);
     if (testUrl) {
         try {
@@ -72,7 +81,7 @@ router.put('/config', async (req, res) => {
         }
     }
 
-    saveMapSettings({ provider: provider.id, api_key: apiKey, custom_url: customUrl });
+    saveMapSettings({ provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight });
     log.info(`Map provider set to ${provider.id}`);
     res.json(publicConfig());
 });
@@ -97,10 +106,11 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     try {
         const stat = fs.statSync(cachePath);
         if (stat.size > 0 && Date.now() - stat.mtimeMs < TILE_CACHE_MAX_AGE_MS) {
-            res.set('Content-Type', 'image/png');
+            const buffer = fs.readFileSync(cachePath);
+            res.set('Content-Type', imageType(buffer));
             res.set('Cache-Control', 'public, max-age=604800');
             res.set('X-Cache-Status', 'HIT');
-            return res.sendFile(path.resolve(cachePath));
+            return res.end(buffer);
         }
     } catch { /* not cached */ }
 

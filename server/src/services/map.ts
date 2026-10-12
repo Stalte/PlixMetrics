@@ -19,6 +19,30 @@ export interface MapProvider {
 
 export const MAP_PROVIDERS: MapProvider[] = [
     {
+        id: 'bluemarble',
+        name: 'NASA Blue Marble - day/night earth (no key)',
+        requiresKey: false,
+        maxZoom: 8,
+        attribution: 'Imagery &copy; NASA Blue Marble, NASA EOSDIS GIBS',
+        url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg'
+    },
+    {
+        id: 'nightlights',
+        name: 'NASA Earth at Night - city lights (no key)',
+        requiresKey: false,
+        maxZoom: 8,
+        attribution: 'Imagery &copy; NASA Earth Observatory, NASA EOSDIS GIBS',
+        url: 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'
+    },
+    {
+        id: 'satellite',
+        name: 'Esri World Imagery - satellite (no key)',
+        requiresKey: false,
+        maxZoom: 18,
+        attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    },
+    {
         id: 'esri',
         name: 'Esri Dark Gray (no key)',
         requiresKey: false,
@@ -63,12 +87,14 @@ export const MAP_PROVIDERS: MapProvider[] = [
     }
 ];
 
-export const DEFAULT_PROVIDER = 'esri';
+export const DEFAULT_PROVIDER = 'bluemarble';
 
 export interface MapSettings {
     provider: string;
     api_key: string;
     custom_url: string;
+    /** Shade the part of the world where it is currently night. */
+    day_night: boolean;
     updated_at: string;
 }
 
@@ -76,6 +102,7 @@ const KEYS = {
     provider: 'map_provider',
     api_key: 'map_api_key',
     custom_url: 'map_custom_url',
+    day_night: 'map_day_night',
     updated_at: 'map_updated_at'
 } as const;
 
@@ -90,6 +117,7 @@ export function getMapSettings(): MapSettings {
         provider: MAP_PROVIDERS.some((p) => p.id === provider) ? provider : DEFAULT_PROVIDER,
         api_key: readConfig(KEYS.api_key),
         custom_url: readConfig(KEYS.custom_url),
+        day_night: readConfig(KEYS.day_night) !== 'false',
         updated_at: readConfig(KEYS.updated_at) || '0'
     };
 }
@@ -101,6 +129,7 @@ export function saveMapSettings(settings: Omit<MapSettings, 'updated_at'>): MapS
         upsert.run(KEYS.provider, settings.provider);
         upsert.run(KEYS.api_key, settings.api_key);
         upsert.run(KEYS.custom_url, settings.custom_url);
+        upsert.run(KEYS.day_night, String(settings.day_night));
         upsert.run(KEYS.updated_at, updatedAt);
     })();
     return { ...settings, updated_at: updatedAt };

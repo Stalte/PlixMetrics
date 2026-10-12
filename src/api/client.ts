@@ -83,6 +83,7 @@ export interface MapConfig {
     provider: string;
     has_api_key: boolean;
     custom_url: string;
+    day_night: boolean;
     max_zoom: number;
     attribution: string;
     version: string;
@@ -91,7 +92,7 @@ export interface MapConfig {
 
 export const mapApi = {
     getConfig: () => api.get<MapConfig>('/api/map/config'),
-    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string }) =>
+    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string; day_night?: boolean }) =>
         api.put<MapConfig>('/api/map/config', data)
 };
 
