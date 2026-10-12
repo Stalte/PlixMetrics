@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { upstream } from '../services/upstream.js';
-import { MAP_PROVIDERS, buildTileUrl, getMapSettings, getProvider, saveMapSettings } from '../services/map.js';
+import { LABELS_LAYER, MAP_PROVIDERS, buildTileUrl, getMapSettings, getProvider, saveMapSettings } from '../services/map.js';
 import logger from '../services/logger.js';
 
 const router = Router();
@@ -32,6 +32,9 @@ function publicConfig() {
         has_api_key: Boolean(settings.api_key),
         custom_url: settings.custom_url,
         day_night: settings.day_night,
+        labels: settings.labels,
+        labels_max_zoom: LABELS_LAYER.maxZoom,
+        labels_attribution: LABELS_LAYER.attribution,
         max_zoom: provider.maxZoom,
         attribution: provider.attribution,
         version: settings.updated_at,
@@ -57,6 +60,7 @@ router.put('/config', async (req, res) => {
         : (providerId === current.provider ? current.api_key : '');
     const customUrl = typeof req.body.custom_url === 'string' ? req.body.custom_url.trim() : '';
     const dayNight = req.body.day_night === undefined ? current.day_night : Boolean(req.body.day_night);
+    const labels = req.body.labels === undefined ? current.labels : Boolean(req.body.labels);
 
     if (provider.requiresKey && !apiKey) {
         return res.status(400).json({ error: `${provider.name} needs an API key` });
@@ -66,7 +70,7 @@ router.put('/config', async (req, res) => {
     }
 
     // Try one tile before saving so a wrong key is reported right away.
-    const candidate = { provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight, updated_at: '' };
+    const candidate = { provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight, labels, updated_at: '' };
     const testUrl = buildTileUrl(candidate, 2, 1, 1);
     if (testUrl) {
         try {
@@ -81,27 +85,24 @@ router.put('/config', async (req, res) => {
         }
     }
 
-    saveMapSettings({ provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight });
+    saveMapSettings({ provider: provider.id, api_key: apiKey, custom_url: customUrl, day_night: dayNight, labels });
     log.info(`Map provider set to ${provider.id}`);
     res.json(publicConfig());
 });
 
-/** GET /api/map/tiles/:z/:x/:y.png - tile from the configured provider, cached on disk */
-router.get('/tiles/:z/:x/:y.png', async (req, res) => {
-    const z = parseInt(req.params.z, 10);
-    const x = parseInt(req.params.x, 10);
-    const y = parseInt(req.params.y, 10);
+/** Tile coordinates from the request, or null when they are out of range. */
+function parseTile(params: Record<string, string>): { z: number; x: number; y: number } | null {
+    const z = parseInt(params.z, 10);
+    const x = parseInt(params.x, 10);
+    const y = parseInt(params.y, 10);
     const max = 2 ** z;
-    if (![z, x, y].every(Number.isInteger) || z < 0 || z > 22 || x < 0 || y < 0 || x >= max || y >= max) {
-        return res.status(400).send('Invalid tile');
-    }
+    if (![z, x, y].every(Number.isInteger) || z < 0 || z > 22 || x < 0 || y < 0 || x >= max || y >= max) return null;
+    return { z, x, y };
+}
 
-    const settings = getMapSettings();
-    const url = buildTileUrl(settings, z, x, y);
-    if (!url) return res.status(404).send('Map provider not configured');
-
-    const cacheName = crypto.createHash('md5').update(`${settings.provider}|${settings.custom_url}|${settings.updated_at}|${z}/${x}/${y}`).digest('hex');
-    const cachePath = path.join(TILE_CACHE_DIR, cacheName);
+/** Send one upstream tile, from the disk cache when possible. */
+async function serveTile(res: Response, url: string, cacheKey: string, source: string): Promise<void> {
+    const cachePath = path.join(TILE_CACHE_DIR, crypto.createHash('md5').update(cacheKey).digest('hex'));
 
     try {
         const stat = fs.statSync(cachePath);
@@ -110,7 +111,8 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
             res.set('Content-Type', imageType(buffer));
             res.set('Cache-Control', 'public, max-age=604800');
             res.set('X-Cache-Status', 'HIT');
-            return res.end(buffer);
+            res.end(buffer);
+            return;
         }
     } catch { /* not cached */ }
 
@@ -133,10 +135,33 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     } catch (err: any) {
         if (Date.now() - lastTileErrorLog > 60000) {
             lastTileErrorLog = Date.now();
-            log.warn(`Tile ${z}/${x}/${y} from ${settings.provider} failed: ${err?.response?.status ? `HTTP ${err.response.status}` : err.message}`);
+            log.warn(`Tile ${source} failed: ${err?.response?.status ? `HTTP ${err.response.status}` : err.message}`);
         }
         if (!res.headersSent) res.status(502).send('Tile unavailable');
     }
+}
+
+/** GET /api/map/tiles/:z/:x/:y.png - tile from the configured provider, cached on disk */
+router.get('/tiles/:z/:x/:y.png', async (req, res) => {
+    const tile = parseTile(req.params);
+    if (!tile) return res.status(400).send('Invalid tile');
+    const { z, x, y } = tile;
+
+    const settings = getMapSettings();
+    const url = buildTileUrl(settings, z, x, y);
+    if (!url) return res.status(404).send('Map provider not configured');
+
+    await serveTile(res, url, `${settings.provider}|${settings.custom_url}|${settings.updated_at}|${z}/${x}/${y}`, `${z}/${x}/${y} from ${settings.provider}`);
+});
+
+/** GET /api/map/labels/:z/:x/:y.png - borders and place names overlay, cached on disk */
+router.get('/labels/:z/:x/:y.png', async (req, res) => {
+    const tile = parseTile(req.params);
+    if (!tile || tile.z > LABELS_LAYER.maxZoom) return res.status(400).send('Invalid tile');
+    const { z, x, y } = tile;
+
+    const url = LABELS_LAYER.url.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y));
+    await serveTile(res, url, `labels|${z}/${x}/${y}`, `labels ${z}/${x}/${y}`);
 });
 
 export default router;

@@ -84,6 +84,9 @@ export interface MapConfig {
     has_api_key: boolean;
     custom_url: string;
     day_night: boolean;
+    labels: boolean;
+    labels_max_zoom: number;
+    labels_attribution: string;
     max_zoom: number;
     attribution: string;
     version: string;
@@ -92,7 +95,7 @@ export interface MapConfig {
 
 export const mapApi = {
     getConfig: () => api.get<MapConfig>('/api/map/config'),
-    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string; day_night?: boolean }) =>
+    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string; day_night?: boolean; labels?: boolean }) =>
         api.put<MapConfig>('/api/map/config', data)
 };
 
@@ -101,6 +104,14 @@ export const getMapTileUrl = (version: string) => {
     const token = localStorage.getItem('plix_auth_token');
     if (token) params.append('token', token);
     return `/api/map/tiles/{z}/{x}/{y}.png?${params.toString()}`;
+};
+
+export const getMapLabelsUrl = () => {
+    const params = new URLSearchParams();
+    const token = localStorage.getItem('plix_auth_token');
+    if (token) params.append('token', token);
+    const query = params.toString();
+    return `/api/map/labels/{z}/{x}/{y}.png${query ? `?${query}` : ''}`;
 };
 
 // Geolocation (optional MaxMind database)

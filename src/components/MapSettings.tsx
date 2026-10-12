@@ -16,6 +16,7 @@ export const MapSettings: React.FC = () => {
     const [apiKey, setApiKey] = useState('');
     const [customUrl, setCustomUrl] = useState('');
     const [dayNight, setDayNight] = useState(true);
+    const [labels, setLabels] = useState(true);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -23,6 +24,7 @@ export const MapSettings: React.FC = () => {
             setProvider(config.provider);
             setCustomUrl(config.custom_url || '');
             setDayNight(config.day_night);
+            setLabels(config.labels);
         }
     }, [config]);
 
@@ -35,7 +37,7 @@ export const MapSettings: React.FC = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            const res = await mapApi.saveConfig({ provider, api_key: apiKey, custom_url: customUrl, day_night: dayNight });
+            const res = await mapApi.saveConfig({ provider, api_key: apiKey, custom_url: customUrl, day_night: dayNight, labels });
             queryClient.setQueryData(['mapConfig'], res.data);
             setApiKey('');
             addToast(t('mapSettings.saved'), 'success');
@@ -96,6 +98,11 @@ export const MapSettings: React.FC = () => {
             <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
                 <input type="checkbox" checked={dayNight} onChange={(e) => setDayNight(e.target.checked)} className="accent-cyan-500" />
                 {t('mapSettings.dayNight')}
+            </label>
+
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} className="accent-cyan-500" />
+                {t('mapSettings.labels')}
             </label>
 
             <button
