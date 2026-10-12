@@ -103,6 +103,24 @@ export const getMapTileUrl = (version: string) => {
     return `/api/map/tiles/{z}/{x}/{y}.png?${params.toString()}`;
 };
 
+// Geolocation (optional MaxMind database)
+export interface GeoipStatus {
+    enabled: boolean;
+    account_id: string;
+    has_license_key: boolean;
+    edition: 'GeoLite2-City' | 'GeoIP2-City';
+    database_date: string | null;
+    downloaded_at: string | null;
+    last_error: string | null;
+}
+
+export const geoipApi = {
+    getConfig: () => api.get<GeoipStatus>('/api/geoip/config'),
+    saveConfig: (data: { account_id: string; license_key?: string; edition: string }) =>
+        api.put<GeoipStatus>('/api/geoip/config', data),
+    disable: () => api.delete<GeoipStatus>('/api/geoip/config')
+};
+
 // Plain-text application log (opened in a new tab, so the token goes in the query string)
 export const getLogsUrl = (lines = 1000) => {
     const params = new URLSearchParams({ lines: String(lines) });
