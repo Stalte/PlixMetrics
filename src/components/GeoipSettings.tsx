@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { geoipApi, GeoipStatus } from '../api/client';
 import { useToast } from '../context/ToastContext';
@@ -12,6 +12,8 @@ export const GeoipSettings: React.FC = () => {
     const [licenseKey, setLicenseKey] = useState('');
     const [edition, setEdition] = useState('GeoLite2-City');
     const [busy, setBusy] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInput = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         geoipApi.getConfig().then((res) => {
@@ -38,6 +40,22 @@ export const GeoipSettings: React.FC = () => {
         }
     };
 
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        setUploading(true);
+        try {
+            const res = await geoipApi.upload(file);
+            setStatus(res.data);
+            addToast(t('geoip.uploaded'), 'success');
+        } catch (err: any) {
+            addToast(err.response?.data?.error || err.message, 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleDisable = async () => {
         setBusy(true);
         try {
@@ -56,11 +74,15 @@ export const GeoipSettings: React.FC = () => {
         <form onSubmit={handleSave} className="mt-6 pt-5 border-t border-slate-700/50 space-y-3">
             <h3 className="text-sm font-bold text-slate-300">{t('geoip.title')}</h3>
             <p className={`text-xs ${status.enabled ? 'text-emerald-400' : 'text-slate-500'}`}>
-                {status.enabled
-                    ? t('geoip.usingMaxmind', { edition: status.edition, date: status.database_date })
-                    : t('geoip.usingBuiltIn')}
+                {!status.enabled
+                    ? t('geoip.usingBuiltIn')
+                    : status.source === 'upload'
+                        ? t('geoip.usingUploaded', { date: status.database_date })
+                        : t('geoip.usingMaxmind', { edition: status.edition, date: status.database_date })}
             </p>
             {status.last_error && <p className="text-xs text-red-400">{status.last_error}</p>}
+
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide pt-1">{t('geoip.autoTitle')}</h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -99,6 +121,20 @@ export const GeoipSettings: React.FC = () => {
                         {t('geoip.disable')}
                     </button>
                 )}
+            </div>
+
+            <div className="pt-2 space-y-2">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('geoip.orUpload')}</h4>
+                <p className="text-xs text-slate-500">{t('geoip.uploadHelp')}</p>
+                <input ref={fileInput} type="file" accept=".mmdb,.gz,.tgz,application/gzip,application/octet-stream" onChange={handleUpload} className="hidden" />
+                <button
+                    type="button"
+                    onClick={() => fileInput.current?.click()}
+                    disabled={uploading || busy}
+                    className="w-full px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-700/60 text-slate-200 text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                    {uploading ? t('geoip.uploading') : t('geoip.uploadButton')}
+                </button>
             </div>
         </form>
     );

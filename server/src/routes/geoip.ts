@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { configureMaxmind, disableMaxmind, getMaxmindSettings, getMaxmindStatus, MAXMIND_EDITIONS, MaxmindEdition } from '../services/maxmind.js';
+import express, { Router } from 'express';
+import { configureMaxmind, disableMaxmind, getMaxmindSettings, getMaxmindStatus, MAXMIND_EDITIONS, MaxmindEdition, uploadMaxmind } from '../services/maxmind.js';
 import logger from '../services/logger.js';
 
 const router = Router();
@@ -25,6 +25,17 @@ router.put('/config', async (req, res) => {
         res.json(await configureMaxmind({ account_id: accountId, license_key: licenseKey, edition }));
     } catch (err) {
         log.warn(`Setup failed: ${(err as Error).message}`);
+        res.status(400).json({ error: (err as Error).message });
+    }
+});
+
+/** POST /api/geoip/upload - raw body: a City .mmdb, or the .tar.gz / .gz from MaxMind's download page */
+router.post('/upload', express.raw({ type: () => true, limit: '300mb' }), async (req, res) => {
+    try {
+        const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+        res.json(await uploadMaxmind(body));
+    } catch (err) {
+        log.warn(`Upload failed: ${(err as Error).message}`);
         res.status(400).json({ error: (err as Error).message });
     }
 });

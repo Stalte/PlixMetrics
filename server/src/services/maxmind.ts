@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import { pipeline } from 'stream/promises';
 import * as tar from 'tar';
 import maxmind, { CityResponse, Reader } from 'maxmind';
@@ -37,12 +38,15 @@ export interface MaxmindStatus {
     edition: MaxmindEdition;
     database_date: string | null;
     downloaded_at: string | null;
+    /** Where the loaded database came from. */
+    source: 'download' | 'upload' | null;
     last_error: string | null;
 }
 
 let reader: Reader<CityResponse> | null = null;
 let databaseDate: string | null = null;
 let lastError: string | null = null;
+let loadedSource: MaxmindStatus['source'] = null;
 let onReload: (() => void) | null = null;
 
 const KEYS = {
@@ -79,6 +83,7 @@ export function getMaxmindStatus(): MaxmindStatus {
         edition: settings.edition,
         database_date: databaseDate,
         downloaded_at: readConfig(KEYS.downloaded_at) || null,
+        source: reader ? loadedSource : null,
         last_error: lastError
     };
 }
@@ -92,9 +97,13 @@ function dbPath(edition: string): string {
     return path.join(GEOIP_DIR, `${edition}.mmdb`);
 }
 
-async function loadDatabase(file: string): Promise<void> {
+/** A database the user uploaded in the app instead of giving credentials. */
+const UPLOADED_PATH = path.join(GEOIP_DIR, 'uploaded.mmdb');
+
+async function loadDatabase(file: string, source: 'download' | 'upload' = 'download'): Promise<void> {
     const next = await maxmind.open<CityResponse>(file);
     reader = next;
+    loadedSource = source;
     databaseDate = new Date(next.metadata.buildEpoch).toISOString().slice(0, 10);
     lastError = null;
     log.info(`Loaded ${path.basename(file)} (built ${databaseDate})`);
@@ -175,6 +184,7 @@ export function disableMaxmind(): void {
     reader = null;
     databaseDate = null;
     lastError = null;
+    loadedSource = null;
     fs.rmSync(GEOIP_DIR, { recursive: true, force: true });
     log.info('MaxMind disabled, using the built-in location database');
     onReload?.();
@@ -182,7 +192,10 @@ export function disableMaxmind(): void {
 
 async function refreshIfDue(): Promise<void> {
     const settings = getMaxmindSettings();
-    if (!settings.account_id || !settings.license_key) return;
+    if (!settings.account_id || !settings.license_key) {
+        if (!reader && fs.existsSync(UPLOADED_PATH)) await loadDatabase(UPLOADED_PATH, 'upload');
+        return;
+    }
 
     const downloadedAt = Date.parse(readConfig(KEYS.downloaded_at) || '') || 0;
     const file = dbPath(settings.edition);
@@ -200,6 +213,57 @@ async function refreshIfDue(): Promise<void> {
         log.warn(`Update failed: ${lastError}`);
         // Keep using the previous copy if there is one
         if (!reader && fs.existsSync(file)) await loadDatabase(file).catch(() => { /* ignore */ });
+        if (!reader && fs.existsSync(UPLOADED_PATH)) await loadDatabase(UPLOADED_PATH, 'upload').catch(() => { /* ignore */ });
+    }
+}
+
+/**
+ * Use a database file uploaded in the app: the .mmdb itself, or the .tar.gz / .gz that
+ * MaxMind's download page offers. Only City databases are accepted, since Country and ASN
+ * databases cannot place a stream more precisely than the built-in data.
+ */
+export async function uploadMaxmind(data: Buffer): Promise<MaxmindStatus> {
+    if (data.length === 0) throw new Error('The uploaded file is empty');
+    fs.mkdirSync(GEOIP_DIR, { recursive: true });
+    const work = path.join(GEOIP_DIR, 'upload.work');
+    fs.rmSync(work, { recursive: true, force: true });
+    fs.mkdirSync(work, { recursive: true });
+
+    try {
+        let mmdb: string | null;
+        const gzipped = data[0] === 0x1f && data[1] === 0x8b;
+        const content = gzipped ? zlib.gunzipSync(data) : data;
+        const isTar = content.length > 262 && content.toString('latin1', 257, 262) === 'ustar';
+        if (isTar) {
+            const archive = path.join(work, 'upload.tar');
+            fs.writeFileSync(archive, content);
+            await tar.x({ file: archive, cwd: work, filter: (p) => p.endsWith('.mmdb') });
+            mmdb = findMmdb(work);
+            if (!mmdb) throw new Error('The archive does not contain a .mmdb file');
+        } else {
+            mmdb = path.join(work, 'upload.mmdb');
+            fs.writeFileSync(mmdb, content);
+        }
+
+        let check: Reader<CityResponse>;
+        try {
+            check = await maxmind.open<CityResponse>(mmdb);
+        } catch (err) {
+            throw new Error(`This is not a MaxMind database file (${(err as Error).message})`);
+        }
+        const type = check.metadata.databaseType;
+        if (!/City/i.test(type)) {
+            throw new Error(`This is a ${type} database. Upload the GeoLite2 City (or GeoIP2 City) .mmdb or .tar.gz instead`);
+        }
+
+        fs.renameSync(mmdb, UPLOADED_PATH);
+        await loadDatabase(UPLOADED_PATH, 'upload');
+        return getMaxmindStatus();
+    } catch (err: any) {
+        if (err?.code === 'Z_DATA_ERROR' || err?.code === 'Z_BUF_ERROR') throw new Error('The file looks gzipped but could not be unpacked');
+        throw err;
+    } finally {
+        fs.rmSync(work, { recursive: true, force: true });
     }
 }
 
