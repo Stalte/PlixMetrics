@@ -256,7 +256,7 @@ router.get('/image', async (req: Request, res: Response) => {
         }
 
     } catch (error: any) {
-        console.error('[Proxy] Critical Error:', error.message);
+        console.warn('[Proxy] Image fetch failed:', error.message);
         if (res.headersSent || res.writableEnded) return;
         if (error.response && error.response.status === 401) {
             return res.status(502).send('Upstream Authentication Failed');
