@@ -621,25 +621,28 @@ function AppDashboard() {
                     <div className="absolute top-6 left-6 right-6 flex justify-between items-start z-10 pointer-events-none h-full pb-12">
                         <div className="flex gap-8">
                             <div className="flex flex-col items-start pointer-events-auto">
-                                <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 drop-shadow-md">{t('dashboard.activeStreams')}</span>
-                                <span className="text-5xl font-black text-cyan-400 leading-none drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">{data?.total_stream_count || 0}</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 drop-shadow-md">{t('dashboard.activeStreams')}</span>
+                                <span className="text-[58px] font-black text-cyan-400 leading-none drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">{data?.total_stream_count || 0}</span>
                             </div>
                             <div className="flex flex-col items-start pointer-events-auto">
-                                <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 drop-shadow-md">{t('dashboard.bandwidth')}</span>
+                                <span className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1 drop-shadow-md">{t('dashboard.bandwidth')}</span>
                                 <div className="flex items-baseline gap-1.5">
-                                    <span className="text-5xl font-black text-indigo-400 leading-none drop-shadow-[0_0_10px_rgba(129,140,248,0.5)]">
+                                    <span className="text-[58px] font-black text-indigo-400 leading-none drop-shadow-[0_0_10px_rgba(129,140,248,0.5)]">
                                         {data ? (data.total_bandwidth / 1000).toFixed(1) : '0'}
                                     </span>
-                                    <span className="text-sm font-bold text-slate-500 uppercase tracking-wider drop-shadow-md">Mbps</span>
+                                    <span className="text-base font-bold text-slate-500 uppercase tracking-wider drop-shadow-md">Mbps</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Right Side Sessions "Roulette" */}
-                        <div className={`hidden md:flex flex-col w-[350px] h-full relative pointer-events-none overflow-hidden mask-roulette transition-all duration-700 ${showZenSessions ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
+                        <div className={`hidden md:flex flex-col w-[420px] h-full relative pointer-events-none overflow-hidden mask-roulette transition-all duration-700 ${showZenSessions ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'}`}>
                             <div
                                 className="flex flex-col gap-6 py-20 pointer-events-auto animate-roulette"
                                 style={{
+                                    // 20% larger cards so they can be read across the room
+                                    width: '350px',
+                                    zoom: 1.2,
                                     animationDuration: `${(data?.active_sessions.length || 0) * 4}s`,
                                 }}
                             >

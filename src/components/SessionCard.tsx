@@ -52,7 +52,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onUserClick, 
     };
 
     return (
-        <div className={`relative h-[100px] w-full rounded-lg overflow-hidden group transition-all duration-300 ${hideBackground ? '' : 'bg-slate-800/60 shadow-lg border border-white/5 hover:bg-slate-800/80'}`}>
+        <div className={`relative h-[116px] w-full rounded-lg overflow-hidden group transition-all duration-300 ${hideBackground ? '' : 'bg-slate-800/60 shadow-lg border border-white/5 hover:bg-slate-800/80'}`}>
             {/* Background Art */}
             <div
                 className={`absolute inset-0 bg-cover bg-center blur-sm pointer-events-none ${hideBackground ? 'opacity-40' : 'opacity-20'}`}
@@ -93,24 +93,24 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onUserClick, 
                 {/* Text Info - Very dense */}
                 <div className="flex-1 min-w-0 flex flex-col h-full z-10 relative py-1">
                     {/* Level 1: Series Name / Movie Name */}
-                    <h4 className="font-bold text-white text-[13px] leading-tight truncate pr-16" title={primaryTitle}>
+                    <h4 className="flex-shrink-0 font-bold text-white text-[13px] leading-tight truncate pr-16" title={primaryTitle}>
                         {primaryTitle || 'Unknown'}
                     </h4>
 
                     {/* Level 2: S1 . E4 (if applicable) */}
                     {isShow && seasonInfo && (
-                        <div className="text-[10px] text-amber-400 font-extrabold uppercase tracking-tighter mt-0.5">
+                        <div className="flex-shrink-0 text-[10px] leading-tight text-amber-400 font-extrabold uppercase tracking-tighter mt-0.5">
                             {seasonInfo}
                         </div>
                     )}
 
                     {/* Level 3: Episode Title / Year */}
-                    <div className="text-[11px] text-slate-300 font-medium truncate mt-0.5 leading-tight">
+                    <div className="flex-shrink-0 text-[11px] text-slate-300 font-medium truncate mt-0.5 leading-tight">
                         {isShow ? session.title : session.year}
                     </div>
 
                     {/* Level 4: Server - User */}
-                    <div className="text-[10px] text-slate-400 font-medium truncate mt-0.5 flex items-center gap-1">
+                    <div className="flex-shrink-0 text-[10px] leading-tight text-slate-400 font-medium truncate mt-0.5 flex items-center gap-1">
                         <span className="text-indigo-400/80 font-bold">{session.server_name}</span>
                         <span className="opacity-40">•</span>
                         <span
@@ -125,7 +125,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onUserClick, 
                         </span>
                     </div>
 
-                    <div className="mt-auto flex justify-between items-end w-full gap-2">
+                    <div className="flex-shrink-0 mt-auto flex justify-between items-end w-full gap-2">
                         <div className="min-w-0 text-[9px] text-slate-500 font-mono leading-tight">
                             {location && (
                                 <div className="flex items-center gap-0.5 truncate text-slate-400" title={location}>
