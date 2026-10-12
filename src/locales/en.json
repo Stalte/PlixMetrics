@@ -230,5 +230,18 @@
     "telegram": {
         "allTime": "All Time",
         "lastDays": "Last {{days}} Days"
+    },
+    "mapSettings": {
+        "title": "Live map",
+        "provider": "Map style",
+        "apiKey": "API key",
+        "apiKeyPlaceholder": "Paste your API key",
+        "keySaved": "Key saved (leave empty to keep it)",
+        "getKey": "Get a free API key",
+        "customUrl": "Tile URL",
+        "customUrlHint": "Use {z}, {x} and {y} for the tile, and {key} for the API key if needed.",
+        "save": "Save map settings",
+        "testing": "Testing...",
+        "saved": "Map settings saved"
     }
 }

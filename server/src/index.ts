@@ -16,6 +16,7 @@ import configRouter from './routes/config.js';
 import authRouter from './routes/auth.js';
 import analyticsRouter from './routes/analytics.js';
 import systemRouter from './routes/system.js';
+import mapRouter from './routes/map.js';
 
 // Middleware imports
 import { checkAuth } from './middleware/auth.js';
@@ -52,6 +53,7 @@ app.use('/api/proxy', checkAuth, proxyRouter);
 app.use('/api/users', checkAuth, cacheResponse(HISTORY_CACHE_MS), usersRouter);
 app.use('/api/config', checkAuth, configRouter);
 app.use('/api/system', checkAuth, systemRouter);
+app.use('/api/map', checkAuth, mapRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

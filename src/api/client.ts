@@ -78,6 +78,30 @@ export const getImageProxyUrl = (serverId: number | string, img: string, width =
     return `/api/proxy/image?${params.toString()}`;
 };
 
+// Map API (tiles are proxied by the server so API keys stay server-side)
+export interface MapConfig {
+    provider: string;
+    has_api_key: boolean;
+    custom_url: string;
+    max_zoom: number;
+    attribution: string;
+    version: string;
+    providers: Array<{ id: string; name: string; requires_key: boolean; signup_url?: string }>;
+}
+
+export const mapApi = {
+    getConfig: () => api.get<MapConfig>('/api/map/config'),
+    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string }) =>
+        api.put<MapConfig>('/api/map/config', data)
+};
+
+export const getMapTileUrl = (version: string) => {
+    const params = new URLSearchParams({ v: version });
+    const token = localStorage.getItem('plix_auth_token');
+    if (token) params.append('token', token);
+    return `/api/map/tiles/{z}/{x}/{y}.png?${params.toString()}`;
+};
+
 // Plain-text application log (opened in a new tab, so the token goes in the query string)
 export const getLogsUrl = (lines = 1000) => {
     const params = new URLSearchParams({ lines: String(lines) });

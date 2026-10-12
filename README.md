@@ -201,6 +201,19 @@ Under **Direct Plex connection (optional)** in the server form you can add the P
 - Large Tautulli databases can be slow to answer. Raise `TAUTULLI_TIMEOUT_MS` (default `20000`) if you see timeouts.
 - Using `https://` with a self-signed certificate? Use `http://` on your local network, or set `ALLOW_INSECURE_TLS=true`.
 
+### Live map style and API key
+
+The map works out of the box with a free dark map (Esri Dark Gray). To use a different style, open **Manage Servers → Live map**, pick a provider and paste its API key:
+
+| Provider | Free API key |
+|----------|--------------|
+| Stadia Maps (Alidade Smooth Dark) | [client.stadiamaps.com/signup](https://client.stadiamaps.com/signup/) |
+| MapTiler (Dataviz Dark) | [cloud.maptiler.com](https://cloud.maptiler.com/) |
+| Mapbox (Dark) | [account.mapbox.com](https://account.mapbox.com/auth/signup/) |
+| Custom | Any `{z}/{x}/{y}` tile URL, with `{key}` where the key goes |
+
+The key is checked before it is saved, stays on the PlixMetrics server (map tiles are loaded through it), and tiles are cached in `DATA_DIR/cache/tiles`.
+
 ### 3. Mobile App (PWA) Setup 📱
 PlixMetrics is a Progressive Web App. You can install it on your phone for a native-like experience.
 
@@ -330,6 +343,7 @@ PlixMetrics/
 | `/api/network` | GET | Get network status |
 | `/api/stats` | GET | Get watch statistics |
 | `/api/system/version` | GET | Check for updates |
+| `/api/map/config` | GET/PUT | Live map provider and API key |
 | `/api/system/logs` | GET | Latest application log lines (`?lines=500`) |
 | `/api/health` | GET | Health check |
 
