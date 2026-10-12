@@ -246,6 +246,18 @@ $env:PORT=8282; npm start
 | `DATA_DIR` | `./data` | Directory for SQLite database |
 | `JWT_SECRET` | (random) | Secret key for authentication tokens |
 | `NODE_ENV` | `production` | Environment mode |
+| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn` or `error` |
+| `LOG_DIR` | `DATA_DIR/logs` | Directory for log files |
+| `LOG_MAX_BYTES` | `5242880` | Rotate the log file after this many bytes |
+| `LOG_MAX_FILES` | `5` | Number of rotated log files to keep |
+
+### Logs
+
+PlixMetrics writes its logs to `DATA_DIR/logs/plixmetrics.log` (with Docker and the default compose file: `./data/logs/plixmetrics.log` on the host). Files rotate automatically. API keys and Plex tokens are masked.
+
+- Every failed or slow request to Tautulli or Plex is logged with the server name, the command and the reason (timeout, invalid API key, connection refused, certificate error...).
+- Set `LOG_LEVEL=debug` to also log every API request and upstream call with its duration.
+- You can read the latest lines from the browser at **Manage Servers → View logs**, or at `/api/system/logs?lines=500`.
 
 ## Architecture
 
@@ -279,6 +291,7 @@ PlixMetrics/
 | `/api/network` | GET | Get network status |
 | `/api/stats` | GET | Get watch statistics |
 | `/api/system/version` | GET | Check for updates |
+| `/api/system/logs` | GET | Latest application log lines (`?lines=500`) |
 | `/api/health` | GET | Health check |
 
 

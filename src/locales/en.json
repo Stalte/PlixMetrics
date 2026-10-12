@@ -153,7 +153,8 @@
         "serverAdded": "Server \"{{name}}\" added successfully",
         "failedToSave": "Failed to save server. Check details.",
         "manageServers": "Manage Servers",
-        "addNewServer": "Add New Server"
+        "addNewServer": "Add New Server",
+        "viewLogs": "View logs"
     },
     "serverList": {
         "loadingServers": "Loading servers...",

@@ -1,3 +1,5 @@
+// Must be first: installs file logging before other modules start writing logs.
+import logger, { LOG_FILE } from './services/logger.js';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -16,6 +18,7 @@ import systemRouter from './routes/system.js';
 
 // Middleware imports
 import { checkAuth } from './middleware/auth.js';
+import { requestLogger } from './middleware/requestLogger.js';
 
 // Initialize database (will create tables if not exist)
 import './db/index.js';
@@ -29,6 +32,7 @@ const PORT = process.env.PORT || 8282;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger);
 
 // Public Routes (Auth endpoints themselves)
 app.use('/api/auth', authRouter);
@@ -56,10 +60,13 @@ app.use(express.static(staticPath));
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
         res.sendFile(path.join(staticPath, 'index.html'));
+    } else {
+        res.status(404).json({ error: 'Not found' });
     }
 });
 
 app.listen(PORT, () => {
+    logger.info(`Log level: ${process.env.LOG_LEVEL || 'info'}, log file: ${LOG_FILE}`);
     console.log(`
 ╔═══════════════════════════════════════════════╗
 ║              PlixMetrics Server               ║

@@ -70,6 +70,14 @@ export const getImageProxyUrl = (serverId: number | string, img: string, width =
     return `/api/proxy/image?${params.toString()}`;
 };
 
+// Plain-text application log (opened in a new tab, so the token goes in the query string)
+export const getLogsUrl = (lines = 1000) => {
+    const params = new URLSearchParams({ lines: String(lines) });
+    const token = localStorage.getItem('plix_auth_token');
+    if (token) params.append('token', token);
+    return `/api/system/logs?${params.toString()}`;
+};
+
 // Request interceptor for adding token
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('plix_auth_token');
