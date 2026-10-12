@@ -43,6 +43,17 @@ db.exec(`
     );
 `);
 
+// Migrations: optional direct Plex connection for live data
+const serverColumns = (db.prepare('PRAGMA table_info(servers)').all() as Array<{ name: string }>).map((c) => c.name);
+if (!serverColumns.includes('plex_url')) {
+    db.exec('ALTER TABLE servers ADD COLUMN plex_url TEXT');
+    console.log('[DB] Added servers.plex_url column');
+}
+if (!serverColumns.includes('plex_token')) {
+    db.exec('ALTER TABLE servers ADD COLUMN plex_token TEXT');
+    console.log('[DB] Added servers.plex_token column');
+}
+
 console.log('[DB] SQLite database initialized at:', dbPath);
 
 export default db;

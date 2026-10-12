@@ -11,11 +11,19 @@ export const api = axios.create({
 });
 
 // Server API
+export interface ServerPayload {
+    name: string;
+    tautulli_url: string;
+    api_key: string;
+    plex_url?: string;
+    plex_token?: string;
+}
+
 export const serversApi = {
     list: () => api.get('/api/servers'),
-    add: (data: { name: string; tautulli_url: string; api_key: string }) =>
+    add: (data: ServerPayload) =>
         api.post('/api/servers', data),
-    update: (id: number, data: { name: string; tautulli_url: string; api_key: string }) =>
+    update: (id: number, data: ServerPayload) =>
         api.put(`/api/servers/${id}`, data),
     delete: (id: number) => api.delete(`/api/servers/${id}`),
     checkStatus: (id: number) => api.get(`/api/servers/${id}/status`)

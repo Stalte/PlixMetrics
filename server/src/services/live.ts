@@ -1,5 +1,6 @@
 import { PlexServer, ActiveSession } from '../types.js';
 import { tautulli } from './tautulli.js';
+import { getPlexActivity, hasPlex } from './plex.js';
 import { batchGeoLookup, lookupIp, saveGeoCache } from './geoip.js';
 import { metadataCache } from './cache.js';
 import logger from './logger.js';
@@ -24,8 +25,31 @@ export interface ServerLiveResult {
     error?: string;
 }
 
-/** Current activity for one server. */
+// After a failed Plex call, use Tautulli for a minute instead of waiting on Plex every poll.
+const PLEX_RETRY_MS = 60 * 1000;
+const plexFailedAt = new Map<number, number>();
+const plexBackoff = (serverId: number) => {
+    const failedAt = plexFailedAt.get(serverId);
+    return failedAt !== undefined && Date.now() - failedAt < PLEX_RETRY_MS;
+};
+
+/**
+ * Current activity for one server.
+ * Reads Plex directly when a Plex URL and token are configured (faster and always current),
+ * and falls back to Tautulli's get_activity when Plex is not configured or does not answer.
+ */
 export async function getLiveActivity(server: PlexServer): Promise<LiveActivity> {
+    if (hasPlex(server) && !plexBackoff(server.id)) {
+        try {
+            const activity = await getPlexActivity(server);
+            plexFailedAt.delete(server.id);
+            return activity;
+        } catch (err) {
+            plexFailedAt.set(server.id, Date.now());
+            log.warn(`${server.name}: Plex live data unavailable, using Tautulli for the next minute (${(err as Error).message})`);
+        }
+    }
+
     const data = await tautulli(server, 'get_activity', {}, { timeout: LIVE_TIMEOUT_MS });
     const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
     return {
@@ -191,4 +215,10 @@ export async function buildActiveSessions(results: ServerLiveResult[]): Promise<
     }
 
     return { sessions, total_bandwidth: totalBandwidth, total_stream_count: totalStreamCount, total_transcodes: totalTranscodes };
+}
+
+/** Forget connection failures, e.g. after a server's settings change. */
+export function resetLiveState(serverId?: number): void {
+    if (serverId === undefined) plexFailedAt.clear();
+    else plexFailedAt.delete(serverId);
 }

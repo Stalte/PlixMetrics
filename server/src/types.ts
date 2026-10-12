@@ -3,6 +3,8 @@ export interface PlexServer {
     name: string;
     tautulli_url: string;
     api_key_secret: string;
+    plex_url?: string | null;
+    plex_token?: string | null;
     created_at?: string;
 }
 

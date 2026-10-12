@@ -1,6 +1,6 @@
 # PlixMetrics
 
-A self-hosted, real-time Plex network monitoring dashboard. Track multiple Tautulli instances, visualize streaming activity on a world map, and analyze viewing statistics.
+A self-hosted, real-time Plex network monitoring dashboard. Track multiple Tautulli instances (optionally reading live sessions straight from Plex), visualize streaming activity on a world map, and analyze viewing statistics.
 
 ![PlixMetrics Dashboard](docs/dashboard.png)
 
@@ -165,6 +165,22 @@ PlixMetrics relies on Tautulli for data. You must have Tautulli installed and ru
    - **URL**: The full URL to Tautulli (e.g., `http://192.168.1.50:8181`).
    - **API Key**: Find this in Tautulli under **Settings -> Web Interface -> API Key**.
 
+#### Optional: connect Plex directly for live data
+
+Under **Direct Plex connection (optional)** in the server form you can add the Plex Media Server URL (e.g. `http://192.168.1.50:32400`) and a [Plex token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/). When set:
+
+- Live sessions on the dashboard are read straight from Plex, which is faster and more current than going through Tautulli.
+- Posters and artwork are loaded from Plex.
+- Tautulli is still used for users, history, statistics and analytics.
+- If Plex stops answering, PlixMetrics falls back to Tautulli automatically and retries Plex a minute later.
+
+#### Troubleshooting connections
+
+**Manage Servers** shows why a server is offline (timeout, invalid API key, connection refused, certificate error...). More detail is in the logs (see [Logs](#logs)).
+
+- Large Tautulli databases can be slow to answer. Raise `TAUTULLI_TIMEOUT_MS` (default `20000`) if you see timeouts.
+- Using `https://` with a self-signed certificate? Use `http://` on your local network, or set `ALLOW_INSECURE_TLS=true`.
+
 ### 3. Mobile App (PWA) Setup 📱
 PlixMetrics is a Progressive Web App. You can install it on your phone for a native-like experience.
 
@@ -246,6 +262,9 @@ $env:PORT=8282; npm start
 | `DATA_DIR` | `./data` | Directory for SQLite database |
 | `JWT_SECRET` | (random) | Secret key for authentication tokens |
 | `NODE_ENV` | `production` | Environment mode |
+| `TAUTULLI_TIMEOUT_MS` | `20000` | Timeout for Tautulli API calls |
+| `PLEX_TIMEOUT_MS` | `8000` | Timeout for direct Plex calls |
+| `ALLOW_INSECURE_TLS` | `false` | Accept self-signed HTTPS certificates for Tautulli and Plex |
 | `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn` or `error` |
 | `LOG_DIR` | `DATA_DIR/logs` | Directory for log files |
 | `LOG_MAX_BYTES` | `5242880` | Rotate the log file after this many bytes |

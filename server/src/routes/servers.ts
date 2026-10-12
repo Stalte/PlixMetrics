@@ -3,6 +3,8 @@ import db from '../db/index.js';
 import { PlexServer } from '../types.js';
 import { clearServerCaches } from '../services/cache.js';
 import { checkTautulli } from '../services/tautulli.js';
+import { checkPlex, hasPlex } from '../services/plex.js';
+import { resetLiveState } from '../services/live.js';
 import { normalizeUrl } from '../services/upstream.js';
 import logger from '../services/logger.js';
 
@@ -14,7 +16,7 @@ const log = logger.child('Servers');
  */
 router.get('/', (req, res) => {
     try {
-        const stmt = db.prepare('SELECT id, name, tautulli_url, api_key_secret, created_at FROM servers ORDER BY created_at DESC');
+        const stmt = db.prepare('SELECT id, name, tautulli_url, api_key_secret, plex_url, plex_token, created_at FROM servers ORDER BY created_at DESC');
         const servers = stmt.all();
         res.json(servers);
     } catch (error) {
@@ -23,36 +25,76 @@ router.get('/', (req, res) => {
     }
 });
 
+interface ServerInput {
+    name: string;
+    tautulli_url: string;
+    api_key: string;
+    plex_url: string | null;
+    plex_token: string | null;
+}
+
+/**
+ * Validate the request body and test the connections.
+ * Returns the cleaned values, or an error message for a 400 response.
+ */
+async function validateServerInput(body: any): Promise<{ value: ServerInput } | { error: string }> {
+    const trim = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+    const name = trim(body.name);
+    const rawTautulliUrl = trim(body.tautulli_url);
+    const api_key = trim(body.api_key);
+    const rawPlexUrl = trim(body.plex_url);
+    const plex_token = trim(body.plex_token);
+
+    if (!name || !rawTautulliUrl || !api_key) {
+        return { error: 'Missing required fields: name, tautulli_url, api_key' };
+    }
+    if (Boolean(rawPlexUrl) !== Boolean(plex_token)) {
+        return { error: 'To connect Plex directly, fill in both the Plex URL and the Plex token (or leave both empty)' };
+    }
+
+    const value: ServerInput = {
+        name,
+        tautulli_url: normalizeUrl(rawTautulliUrl),
+        api_key,
+        plex_url: rawPlexUrl ? normalizeUrl(rawPlexUrl) : null,
+        plex_token: plex_token || null
+    };
+
+    const [tautulliCheck, plexCheck] = await Promise.all([
+        checkTautulli({ name, tautulli_url: value.tautulli_url, api_key_secret: api_key }, 15000),
+        hasPlex(value) ? checkPlex(value, 10000) : Promise.resolve(null)
+    ]);
+
+    if (!tautulliCheck.ok) {
+        log.warn(`Connection test for "${name}" (${value.tautulli_url}) failed: ${tautulliCheck.error}`);
+        return { error: `Could not connect to Tautulli: ${tautulliCheck.error}` };
+    }
+    if (plexCheck && !plexCheck.ok) {
+        log.warn(`Plex connection test for "${name}" (${value.plex_url}) failed: ${plexCheck.error}`);
+        return { error: `Could not connect to Plex: ${plexCheck.error}` };
+    }
+    return { value };
+}
+
 /**
  * POST /api/servers - Add a new server
  */
 router.post('/', async (req, res) => {
-    const { name, tautulli_url } = req.body;
-    const api_key = typeof req.body.api_key === 'string' ? req.body.api_key.trim() : req.body.api_key;
-
-    if (!name || !tautulli_url || !api_key) {
-        return res.status(400).json({ error: 'Missing required fields: name, tautulli_url, api_key' });
-    }
-
-    const cleanUrl = normalizeUrl(tautulli_url);
-
-    // Test connection
-    const check = await checkTautulli({ name, tautulli_url: cleanUrl, api_key_secret: api_key }, 15000);
-    if (!check.ok) {
-        log.warn(`Connection test for "${name}" (${cleanUrl}) failed: ${check.error}`);
-        return res.status(400).json({ error: `Could not connect to Tautulli: ${check.error}` });
-    }
+    const result = await validateServerInput(req.body);
+    if ('error' in result) return res.status(400).json({ error: result.error });
+    const { name, tautulli_url, api_key, plex_url, plex_token } = result.value;
 
     // Save to database
     try {
-        const stmt = db.prepare('INSERT INTO servers (name, tautulli_url, api_key_secret) VALUES (?, ?, ?)');
-        const result = stmt.run(name, cleanUrl, api_key);
+        const stmt = db.prepare('INSERT INTO servers (name, tautulli_url, api_key_secret, plex_url, plex_token) VALUES (?, ?, ?, ?, ?)');
+        const inserted = stmt.run(name, tautulli_url, api_key, plex_url, plex_token);
         clearServerCaches();
+        log.info(`Added server "${name}" (${tautulli_url}${plex_url ? `, Plex ${plex_url}` : ''})`);
 
         res.json({
             success: true,
             message: 'Server added successfully',
-            id: result.lastInsertRowid
+            id: inserted.lastInsertRowid
         });
     } catch (error) {
         log.error('Error adding server:', error);
@@ -65,27 +107,17 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, tautulli_url } = req.body;
-    const api_key = typeof req.body.api_key === 'string' ? req.body.api_key.trim() : req.body.api_key;
-
-    if (!name || !tautulli_url || !api_key) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const cleanUrl = normalizeUrl(tautulli_url);
-
-    // Test connection
-    const check = await checkTautulli({ name, tautulli_url: cleanUrl, api_key_secret: api_key }, 15000);
-    if (!check.ok) {
-        log.warn(`Connection test for "${name}" (${cleanUrl}) failed: ${check.error}`);
-        return res.status(400).json({ error: `Could not connect to Tautulli: ${check.error}` });
-    }
+    const result = await validateServerInput(req.body);
+    if ('error' in result) return res.status(400).json({ error: result.error });
+    const { name, tautulli_url, api_key, plex_url, plex_token } = result.value;
 
     // Update database
     try {
-        const stmt = db.prepare('UPDATE servers SET name = ?, tautulli_url = ?, api_key_secret = ? WHERE id = ?');
-        stmt.run(name, cleanUrl, api_key, id);
+        const stmt = db.prepare('UPDATE servers SET name = ?, tautulli_url = ?, api_key_secret = ?, plex_url = ?, plex_token = ? WHERE id = ?');
+        stmt.run(name, tautulli_url, api_key, plex_url, plex_token, id);
         clearServerCaches();
+        resetLiveState(Number(id));
+        log.info(`Updated server "${name}" (${tautulli_url}${plex_url ? `, Plex ${plex_url}` : ''})`);
 
         res.json({ success: true, message: 'Server updated successfully' });
     } catch (error) {
@@ -118,19 +150,36 @@ router.delete('/:id', (req, res) => {
 router.get('/:id/status', async (req, res) => {
     const { id } = req.params;
     try {
-        const stmt = db.prepare('SELECT id, name, tautulli_url, api_key_secret FROM servers WHERE id = ?');
+        const stmt = db.prepare('SELECT * FROM servers WHERE id = ?');
         const server = stmt.get(id) as PlexServer | undefined;
 
         if (!server) {
             return res.status(404).json({ error: 'Server not found' });
         }
 
-        const check = await checkTautulli({ ...server, id: Number(id) });
-        if (check.ok) {
-            res.json({ status: 'online', tautulli: { status: 'online', latency_ms: check.latency_ms } });
-        } else {
-            res.json({ status: 'offline', error: check.error, tautulli: { status: 'offline', error: check.error } });
-        }
+        const [tautulliCheck, plexCheck] = await Promise.all([
+            checkTautulli(server),
+            hasPlex(server) ? checkPlex(server) : Promise.resolve(null)
+        ]);
+
+        const tautulliStatus = tautulliCheck.ok
+            ? { status: 'online', latency_ms: tautulliCheck.latency_ms }
+            : { status: 'offline', error: tautulliCheck.error };
+        const plexStatus = plexCheck === null
+            ? null
+            : plexCheck.ok
+                ? { status: 'online', latency_ms: plexCheck.latency_ms }
+                : { status: 'offline', error: plexCheck.error };
+
+        // online: everything configured answers; degraded: one of Tautulli/Plex fails
+        const failures = [
+            !tautulliCheck.ok ? `Tautulli: ${tautulliCheck.error}` : null,
+            plexCheck && !plexCheck.ok ? `Plex: ${plexCheck.error}` : null
+        ].filter(Boolean) as string[];
+        const anyOnline = tautulliCheck.ok || (plexCheck?.ok ?? false);
+        const status = failures.length === 0 ? 'online' : anyOnline ? 'degraded' : 'offline';
+
+        res.json({ status, error: failures.join(' / ') || undefined, tautulli: tautulliStatus, plex: plexStatus });
     } catch (error) {
         log.error(`Status check for server ${id} failed:`, error);
         res.json({ status: 'offline', error: 'Internal error while checking the server' });
