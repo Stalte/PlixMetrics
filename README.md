@@ -83,6 +83,26 @@ docker-compose pull && docker-compose up -d
 
 ---
 
+### 🟧 Unraid (or any Docker host) from your own build
+
+Every push to `main` builds and publishes `ghcr.io/stalte/plixmetrics:latest` (plus a tag per commit) with the **Build image (main)** workflow. You can also run it by hand from the repository's **Actions** tab.
+
+**If the image is private**, log in to GHCR once on the Unraid server (terminal) with a GitHub personal access token (classic) that has the `read:packages` scope:
+```bash
+echo YOUR_TOKEN | docker login ghcr.io -u Stalte --password-stdin
+```
+
+**Add the container** in Unraid: **Docker → Add Container**, then set:
+- **Repository**: `ghcr.io/stalte/plixmetrics:latest`
+- **Network Type**: `bridge`
+- **Port**: container `8282` → host `8282`
+- **Path**: container `/data` → host `/mnt/user/appdata/plixmetrics`
+- **Variables** (optional): `LOG_LEVEL=info`, `TAUTULLI_TIMEOUT_MS=20000`
+
+Logs are then at `/mnt/user/appdata/plixmetrics/logs/plixmetrics.log`. To update, use **Check for Updates** / **Force Update** on the container.
+
+---
+
 ### 📦 Method 2: Windows Installer (Easiest for Windows)
 
 Download the latest standalone executable (`.exe`) from the [Releases page](https://github.com/plix-labs/PlixMetrics/releases).
