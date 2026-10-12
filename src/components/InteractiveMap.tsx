@@ -12,26 +12,53 @@ interface InteractiveMapProps {
     enableClustering?: boolean;
     onUserClick?: (username: string, serverId?: number | string) => void;
     hideControls?: boolean;
+    /** Re-fit the map to all sessions whenever one starts or stops (Zen mode). */
+    followSessions?: boolean;
+    /** Pixels covered by overlays on each side, kept clear when fitting (Zen mode). */
+    fitInsets?: { top: number; right: number; bottom: number; left: number };
 }
 
+const DEFAULT_INSETS = { top: 50, right: 50, bottom: 50, left: 50 };
+
 // Component to handle auto-zooming to fit markers
-const AutoZoom = ({ sessions }: { sessions: ActiveSession[] }) => {
+const AutoZoom = ({ sessions, follow, insets }: { sessions: ActiveSession[]; follow: boolean; insets: typeof DEFAULT_INSETS }) => {
     const map = useMap();
     const hasZoomed = useRef(false);
 
-    useEffect(() => {
-        if (sessions.length > 0 && !hasZoomed.current) {
-            const points = sessions.map(s => [s.latitude!, s.longitude!] as [number, number]);
-            const bounds = L.latLngBounds(points);
+    // Changes only when a session starts or stops (or moves), not on every progress update
+    const sessionKey = useMemo(
+        () => sessions.map(s => `${s.session_id}@${s.latitude!.toFixed(2)},${s.longitude!.toFixed(2)}`).sort().join('|'),
+        [sessions]
+    );
+    const insetKey = `${insets.top},${insets.right},${insets.bottom},${insets.left}`;
 
-            if (sessions.length === 1) {
-                map.setView(points[0], 6, { animate: true });
-            } else {
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10, animate: true });
-            }
-            hasZoomed.current = true;
-        }
-    }, [sessions, map]);
+    useEffect(() => {
+        if (sessions.length === 0 || (hasZoomed.current && !follow)) return;
+
+        const fit = () => {
+            const points = sessions.map(s => [s.latitude!, s.longitude!] as [number, number]);
+            const options = {
+                paddingTopLeft: L.point(insets.left, insets.top),
+                paddingBottomRight: L.point(insets.right, insets.bottom),
+                maxZoom: sessions.length === 1 ? 6 : 10,
+                animate: true,
+                duration: 1.5
+            };
+            if (follow) map.flyToBounds(L.latLngBounds(points), options);
+            else map.fitBounds(L.latLngBounds(points), options);
+        };
+
+        fit();
+        hasZoomed.current = true;
+
+        if (!follow) return;
+        // Keep everything in view when the window (e.g. a TV browser) is resized
+        let timer: ReturnType<typeof setTimeout>;
+        const onResize = () => { clearTimeout(timer); timer = setTimeout(fit, 300); };
+        map.on('resize', onResize);
+        return () => { clearTimeout(timer); map.off('resize', onResize); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionKey, insetKey, follow, map]);
 
     return null;
 };
@@ -112,7 +139,7 @@ const createClusterCustomIcon = (cluster: any) => {
     });
 };
 
-const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableClustering = true, onUserClick, hideControls = false }) => {
+const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableClustering = true, onUserClick, hideControls = false, followSessions = false, fitInsets = DEFAULT_INSETS }) => {
     const { data: mapConfig } = useMapConfig();
     const validSessions = useMemo(() => {
         return sessions.filter(s =>
@@ -141,10 +168,11 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableCluster
             style={{ height: "100%", width: "100%", background: '#0f172a' }}
             zoomControl={false}
             attributionControl={!hideControls}
-            minZoom={3}
+            // Zen mode may zoom out to the whole world so streams on every continent fit
+            minZoom={followSessions ? 2 : 3}
             maxZoom={12}
         >
-            <AutoZoom sessions={validSessions} />
+            <AutoZoom sessions={validSessions} follow={followSessions} insets={fitInsets} />
             {!hideControls && <CustomZoomControl />}
 
             {mapConfig && (

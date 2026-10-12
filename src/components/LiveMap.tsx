@@ -21,6 +21,14 @@ export const LiveMap: React.FC<LiveMapProps> = ({ sessions, onUserClick, hideCon
         localStorage.setItem('map_clustering', String(enableClustering));
     }, [enableClustering]);
 
+    // Zen mode: keep markers clear of the stats (top left), the toggles (bottom) and the
+    // session list on the right, which is only shown on wider screens.
+    const isWide = typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
+    const zenInsets = React.useMemo(
+        () => ({ top: 150, right: showSessions && isWide ? 480 : 60, bottom: 80, left: 60 }),
+        [showSessions, isWide]
+    );
+
     return (
         <div className={`h-full w-full relative overflow-hidden bg-[#0f172a] group ${!hideControls ? 'rounded-xl border border-slate-700/50 shadow-2xl' : ''}`}>
             <div className="h-full w-full z-0 block">
@@ -29,6 +37,8 @@ export const LiveMap: React.FC<LiveMapProps> = ({ sessions, onUserClick, hideCon
                     enableClustering={enableClustering}
                     onUserClick={onUserClick}
                     hideControls={hideControls}
+                    followSessions={hideControls}
+                    fitInsets={hideControls ? zenInsets : undefined}
                 />
             </div>
 
