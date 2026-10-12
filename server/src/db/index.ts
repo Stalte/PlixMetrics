@@ -54,6 +54,15 @@ if (!serverColumns.includes('plex_token')) {
     console.log('[DB] Added servers.plex_token column');
 }
 
+// Migrations: region (state/province) for stream locations
+const geoColumns = (db.prepare('PRAGMA table_info(geo_cache)').all() as Array<{ name: string }>).map((c) => c.name);
+if (!geoColumns.includes('region')) {
+    db.exec('ALTER TABLE geo_cache ADD COLUMN region TEXT');
+    // Cached rows have no region; they are looked up again on demand
+    db.exec('DELETE FROM geo_cache');
+    console.log('[DB] Added geo_cache.region column');
+}
+
 console.log('[DB] SQLite database initialized at:', dbPath);
 
 export default db;

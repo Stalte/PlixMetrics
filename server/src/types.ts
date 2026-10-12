@@ -17,6 +17,13 @@ export interface ActiveSession {
     ip_address: string;
     latitude?: number;
     longitude?: number;
+    location_city?: string;
+    /** State or province */
+    location_region?: string;
+    /** ISO country code */
+    location_country?: string;
+    /** Streaming from the server's own network (private IP) */
+    is_local?: boolean;
     stream_container_decision?: string;
     quality_profile?: string;
     bandwidth?: number;

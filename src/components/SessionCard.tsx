@@ -3,6 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { ActiveSession } from '../types';
 import { getImageProxyUrl } from '../api/client';
 
+const countryNames = (() => {
+    try { return new Intl.DisplayNames(undefined, { type: 'region' }); } catch { return null; }
+})();
+
+/** "City, Region, Country" from whatever parts are known. */
+function formatLocation(session: ActiveSession): string {
+    let country = session.location_country;
+    if (country && countryNames) {
+        try { country = countryNames.of(country) || country; } catch { /* keep the code */ }
+    }
+    const region = session.location_region && session.location_region !== session.location_city ? session.location_region : undefined;
+    return [session.location_city, region, country].filter(Boolean).join(', ');
+}
+
 interface SessionCardProps {
     session: ActiveSession;
     onUserClick?: (username: string, serverId?: number | string) => void;
@@ -24,6 +38,8 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onUserClick, 
     const isShow = session.media_type === 'episode';
     const primaryTitle = isShow ? session.grandparent_title : session.title;
     const seasonInfo = isShow ? `S${session.parent_media_index} • E${session.media_index}` : '';
+
+    const location = session.is_local ? t('session.localNetwork') : formatLocation(session);
 
     const formatTimeLeft = (mins: number) => {
         if (!Number.isFinite(mins) || mins < 0) return '';
@@ -109,11 +125,22 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onUserClick, 
                         </span>
                     </div>
 
-                    <div className="mt-auto flex justify-between items-end w-full">
-                        <div className="text-[9px] text-slate-500 font-mono">
-                            {((session.bandwidth || 0) / 1000).toFixed(1)} Mbps
+                    <div className="mt-auto flex justify-between items-end w-full gap-2">
+                        <div className="min-w-0 text-[9px] text-slate-500 font-mono leading-tight">
+                            {location && (
+                                <div className="flex items-center gap-0.5 truncate text-slate-400" title={location}>
+                                    <svg className="w-2.5 h-2.5 flex-shrink-0 text-cyan-500/80" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
+                                    </svg>
+                                    <span className="truncate">{location}</span>
+                                </div>
+                            )}
+                            <div className="truncate">
+                                {session.ip_address && <span className="text-slate-400">{session.ip_address} • </span>}
+                                {((session.bandwidth || 0) / 1000).toFixed(1)} Mbps
+                            </div>
                         </div>
-                        <div className="text-[12px] text-white font-bold tracking-tight leading-none">
+                        <div className="flex-shrink-0 text-[12px] text-white font-bold tracking-tight leading-none">
                             {formatTimeLeft(timeLeftMins)}
                         </div>
                     </div>

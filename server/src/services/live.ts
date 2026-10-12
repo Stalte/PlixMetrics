@@ -1,7 +1,7 @@
 import { PlexServer, ActiveSession } from '../types.js';
 import { tautulli } from './tautulli.js';
 import { getPlexActivity, hasPlex } from './plex.js';
-import { batchGeoLookup, lookupIp, saveGeoCache } from './geoip.js';
+import { batchGeoLookup, isPrivateIp, lookupIp, GeoLocation } from './geoip.js';
 import { metadataCache } from './cache.js';
 import logger from './logger.js';
 
@@ -147,7 +147,7 @@ export async function buildActiveSessions(results: ServerLiveResult[]): Promise<
             const lat: number | undefined = session.latitude ? parseFloat(session.latitude) : undefined;
             const lon: number | undefined = session.longitude ? parseFloat(session.longitude) : undefined;
 
-            if ((!lat || !lon) && ipToLookup) {
+            if (ipToLookup && !isPrivateIp(ipToLookup)) {
                 ipsToLookup.push(ipToLookup);
             }
 
@@ -158,25 +158,19 @@ export async function buildActiveSessions(results: ServerLiveResult[]): Promise<
     // Batch geo lookup
     const geoCache = await batchGeoLookup([...new Set(ipsToLookup)]);
     const sessions: ActiveSession[] = [];
-    const newGeoCache: Array<{ ip: string; lat: number; lon: number; city?: string; country?: string }> = [];
 
     for (let idx = 0; idx < sessionData.length; idx++) {
         const { session, server, sessionBandwidth, ipToLookup } = sessionData[idx];
         let { lat, lon } = sessionData[idx];
+        const isLocal = Boolean(ipToLookup && isPrivateIp(ipToLookup));
 
-        if ((!lat || !lon) && ipToLookup && geoCache.has(ipToLookup)) {
-            const cached = geoCache.get(ipToLookup)!;
-            lat = cached.lat;
-            lon = cached.lon;
-        }
-
-        if ((!lat || !lon) && ipToLookup) {
-            const geo = lookupIp(ipToLookup);
-            if (geo) {
-                lat = geo.lat;
-                lon = geo.lon;
-                newGeoCache.push({ ip: ipToLookup, lat, lon, city: geo.city, country: geo.country });
-            }
+        // Cache first, then a fresh lookup (which caches public IPs itself). Local addresses
+        // resolve to the server's own location and are not cached.
+        let geo: GeoLocation | null = null;
+        if (ipToLookup) geo = geoCache.get(ipToLookup) ?? lookupIp(ipToLookup);
+        if ((!lat || !lon) && geo) {
+            lat = geo.lat;
+            lon = geo.lon;
         }
 
         // session_key is unique per active stream; session_id is empty for direct play
@@ -191,6 +185,10 @@ export async function buildActiveSessions(results: ServerLiveResult[]): Promise<
             ip_address: ipToLookup || '',
             latitude: lat,
             longitude: lon,
+            location_city: isLocal ? undefined : geo?.city,
+            location_region: isLocal ? undefined : geo?.region,
+            location_country: isLocal ? undefined : geo?.country,
+            is_local: isLocal,
             bandwidth: sessionBandwidth,
             quality_profile: session.quality_profile,
             stream_container_decision: session.stream_container_decision,
@@ -208,10 +206,6 @@ export async function buildActiveSessions(results: ServerLiveResult[]): Promise<
             progress_percent: parseInt(session.progress_percent || '0', 10),
             media_type: session.media_type
         });
-    }
-
-    if (newGeoCache.length > 0) {
-        saveGeoCache(newGeoCache);
     }
 
     return { sessions, total_bandwidth: totalBandwidth, total_stream_count: totalStreamCount, total_transcodes: totalTranscodes };

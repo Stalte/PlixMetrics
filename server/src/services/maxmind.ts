@@ -277,6 +277,7 @@ export interface MaxmindLocation {
     lat: number;
     lon: number;
     city?: string;
+    region?: string;
     country?: string;
     accuracy_km?: number;
 }
@@ -291,6 +292,7 @@ export function maxmindLookup(ip: string): MaxmindLocation | null {
             lat: loc.latitude,
             lon: loc.longitude,
             city: result?.city?.names?.en,
+            region: result?.subdivisions?.[0]?.names?.en,
             country: result?.country?.iso_code,
             accuracy_km: loc.accuracy_radius
         };
