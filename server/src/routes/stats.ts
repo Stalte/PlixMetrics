@@ -372,7 +372,7 @@ router.get('/user/:username', async (req, res) => {
                     const historyData = await tautulli(server, 'get_history', {
                         user: decodeUser,
                         length: 5000 // Catch broad history
-                    }, { timeout: 30000 });
+                    });
 
                     const history = historyData?.data;
                     if (!Array.isArray(history)) return;

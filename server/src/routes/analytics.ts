@@ -106,7 +106,7 @@ router.get('/', async (req, res) => {
             const movieLibraries = (Array.isArray(libraries) ? libraries : []).filter((lib: any) => lib.section_type === 'movie');
 
             const mediaResults = await Promise.allSettled(movieLibraries.map((lib: any) =>
-                tautulli(server, 'get_library_media_info', { section_id: lib.section_id, length: 5000 }, { timeout: 60000 })
+                tautulli(server, 'get_library_media_info', { section_id: lib.section_id, length: 5000 })
             ));
 
             for (const result of mediaResults) {

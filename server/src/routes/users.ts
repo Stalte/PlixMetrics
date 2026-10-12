@@ -40,12 +40,12 @@ router.get('/', async (req, res) => {
                             length: 1000,
                             order_column: 'last_seen',
                             order_dir: 'desc'
-                        }, { timeout: 30000 }),
+                        }),
                         tautulli(server, 'get_history', {
                             length: 1000,
                             order_column: 'date',
                             order_dir: 'desc'
-                        }, { timeout: 30000 })
+                        })
                     ]);
 
                     if (usersResult.status !== 'fulfilled') return;

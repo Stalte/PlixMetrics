@@ -83,6 +83,7 @@ export interface MapConfig {
     provider: string;
     has_api_key: boolean;
     custom_url: string;
+    day_night: boolean;
     max_zoom: number;
     attribution: string;
     version: string;
@@ -91,7 +92,7 @@ export interface MapConfig {
 
 export const mapApi = {
     getConfig: () => api.get<MapConfig>('/api/map/config'),
-    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string }) =>
+    saveConfig: (data: { provider: string; api_key?: string; custom_url?: string; day_night?: boolean }) =>
         api.put<MapConfig>('/api/map/config', data)
 };
 
@@ -100,6 +101,24 @@ export const getMapTileUrl = (version: string) => {
     const token = localStorage.getItem('plix_auth_token');
     if (token) params.append('token', token);
     return `/api/map/tiles/{z}/{x}/{y}.png?${params.toString()}`;
+};
+
+// Geolocation (optional MaxMind database)
+export interface GeoipStatus {
+    enabled: boolean;
+    account_id: string;
+    has_license_key: boolean;
+    edition: 'GeoLite2-City' | 'GeoIP2-City';
+    database_date: string | null;
+    downloaded_at: string | null;
+    last_error: string | null;
+}
+
+export const geoipApi = {
+    getConfig: () => api.get<GeoipStatus>('/api/geoip/config'),
+    saveConfig: (data: { account_id: string; license_key?: string; edition: string }) =>
+        api.put<GeoipStatus>('/api/geoip/config', data),
+    disable: () => api.delete<GeoipStatus>('/api/geoip/config')
 };
 
 // Plain-text application log (opened in a new tab, so the token goes in the query string)

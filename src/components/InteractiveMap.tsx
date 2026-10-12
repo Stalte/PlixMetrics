@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { ActiveSession } from '../types';
 import { useMapConfig } from '../hooks/useMapConfig';
 import { getMapTileUrl } from '../api/client';
+import { DayNightLayer } from './DayNightLayer';
 
 interface InteractiveMapProps {
     sessions: ActiveSession[];
@@ -155,6 +156,7 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableCluster
                     maxZoom={20}
                 />
             )}
+            {mapConfig?.day_night && <DayNightLayer />}
 
             {enableClustering ? (
                 <MarkerClusterGroup

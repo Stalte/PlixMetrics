@@ -242,6 +242,24 @@
         "customUrlHint": "Use {z}, {x} and {y} for the tile, and {key} for the API key if needed.",
         "save": "Save map settings",
         "testing": "Testing...",
-        "saved": "Map settings saved"
+        "saved": "Map settings saved",
+        "dayNight": "Show day and night"
+    },
+    "geoip": {
+        "title": "Location accuracy (MaxMind)",
+        "usingBuiltIn": "Using the built-in location database. Add a free MaxMind account for city-level locations.",
+        "usingMaxmind": "Using MaxMind {{edition}} (database from {{date}}, updated weekly)",
+        "accountId": "Account ID",
+        "licenseKey": "License key",
+        "licenseKeyPlaceholder": "Paste your license key",
+        "edition": "Database",
+        "free": "free",
+        "paid": "paid",
+        "getKey": "Create a free MaxMind account and license key",
+        "enable": "Download and use MaxMind",
+        "update": "Save and update now",
+        "disable": "Turn off",
+        "downloading": "Downloading database...",
+        "saved": "MaxMind database installed"
     }
 }

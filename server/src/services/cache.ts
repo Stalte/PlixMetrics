@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import logger from './logger.js';
 
 const log = logger.child('Cache');
@@ -34,23 +34,98 @@ function cacheKey(req: Request): string {
     return `${req.baseUrl}${req.path}?${query}`;
 }
 
+function storeEntry(key: string, entry: CachedResponse): void {
+    if (entry.status !== 200) return;
+    responseCache.delete(key); // re-insert so the map keeps least-recently-written first
+    if (responseCache.size >= MAX_RESPONSE_ENTRIES) {
+        const oldest = responseCache.keys().next().value;
+        if (oldest !== undefined) responseCache.delete(oldest);
+    }
+    responseCache.set(key, entry);
+}
+
 /**
- * Cache successful JSON responses of a GET route for `ttlMs`.
+ * Re-run a route without a client attached, to refresh a stale cache entry in the background.
+ * The routes behind this cache only use res.status() and res.json().
+ */
+function refreshInBackground(key: string, req: Request, handler: RequestHandler): void {
+    if (inFlight.has(key)) return;
+
+    const fakeReq = Object.create(req) as Request;
+    fakeReq.url = (req as any).cacheOriginalUrl;
+    const promise = new Promise<CachedResponse>((resolve, reject) => {
+        const fakeRes: any = {
+            statusCode: 200,
+            headersSent: false,
+            locals: {},
+            status(code: number) { this.statusCode = code; return this; },
+            set() { return this; },
+            setHeader() { return this; },
+            json(body: unknown) {
+                this.headersSent = true;
+                resolve({ timestamp: Date.now(), status: this.statusCode, body });
+                return this;
+            },
+            send(body: unknown) { return this.json(body); },
+            on() { return this; }
+        };
+        try {
+            handler(fakeReq, fakeRes as Response, (err?: unknown) => reject(err || new Error('No route answered')));
+        } catch (err) {
+            reject(err);
+        }
+    });
+
+    inFlight.set(key, promise);
+    promise
+        .then((entry) => {
+            storeEntry(key, entry);
+            log.debug(`Refreshed ${key} in the background`);
+        })
+        .catch((err) => log.warn(`Background refresh of ${key} failed:`, err))
+        .finally(() => {
+            if (inFlight.get(key) === promise) inFlight.delete(key);
+        });
+}
+
+interface CacheOptions {
+    /** How long a response is served without refreshing it. */
+    ttlMs: number;
+    /**
+     * How long an older response may still be served instantly while a fresh one is
+     * fetched in the background (needs `handler`). Slow Tautulli statistics then load
+     * immediately instead of making the page wait on Tautulli every time.
+     */
+    staleMs?: number;
+    /** The router behind this cache, used for background refreshes. */
+    handler?: RequestHandler;
+}
+
+/**
+ * Cache successful JSON responses of a GET route.
  *
  * Concurrent requests for the same URL share one upstream fetch, so several open
  * dashboards (or a quick page switch) do not each re-query Tautulli. Add `refresh=1`
  * to the query string to bypass the cache.
  */
-export function cacheResponse(ttlMs: number) {
+export function cacheResponse({ ttlMs, staleMs = 0, handler }: CacheOptions) {
     return async (req: Request, res: Response, next: NextFunction) => {
         if (req.method !== 'GET') return next();
 
         const key = cacheKey(req);
+        (req as any).cacheOriginalUrl = req.url;
         const cached = responseCache.get(key);
         const bypass = req.query.refresh === '1' || req.query.refresh === 'true';
+        const age = cached ? Date.now() - cached.timestamp : Infinity;
 
-        if (!bypass && cached && Date.now() - cached.timestamp < ttlMs) {
+        if (!bypass && cached && age < ttlMs) {
             res.set('X-Cache-Status', 'HIT');
+            return res.status(cached.status).json(cached.body);
+        }
+
+        if (!bypass && cached && handler && age < ttlMs + staleMs) {
+            refreshInBackground(key, req, handler);
+            res.set('X-Cache-Status', 'STALE');
             return res.status(cached.status).json(cached.body);
         }
 
@@ -75,14 +150,8 @@ export function cacheResponse(ttlMs: number) {
         const originalJson = res.json.bind(res);
         res.json = (body: unknown) => {
             const entry: CachedResponse = { timestamp: Date.now(), status: res.statusCode, body };
-            inFlight.delete(key);
-            if (res.statusCode === 200) {
-                if (responseCache.size >= MAX_RESPONSE_ENTRIES) {
-                    const oldest = responseCache.keys().next().value;
-                    if (oldest !== undefined) responseCache.delete(oldest);
-                }
-                responseCache.set(key, entry);
-            }
+            if (inFlight.get(key) === promise) inFlight.delete(key);
+            storeEntry(key, entry);
             resolve(entry);
             res.set('X-Cache-Status', 'MISS');
             return originalJson(body);

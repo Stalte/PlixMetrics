@@ -97,7 +97,7 @@ echo YOUR_TOKEN | docker login ghcr.io -u Stalte --password-stdin
 - **Network Type**: `bridge`
 - **Port**: container `8282` → host `8282`
 - **Path**: container `/data` → host `/mnt/user/appdata/plixmetrics`
-- **Variables** (optional): `LOG_LEVEL=info`, `TAUTULLI_TIMEOUT_MS=20000`
+- **Variables** (optional): `LOG_LEVEL=info`, `TAUTULLI_TIMEOUT_MS=180000` (only if statistics still time out)
 
 Logs are then at `/mnt/user/appdata/plixmetrics/logs/plixmetrics.log`. To update, use **Check for Updates** / **Force Update** on the container.
 
@@ -198,21 +198,34 @@ Under **Direct Plex connection (optional)** in the server form you can add the P
 
 **Manage Servers** shows why a server is offline (timeout, invalid API key, connection refused, certificate error...). More detail is in the logs (see [Logs](#logs)).
 
-- Large Tautulli databases can be slow to answer. Raise `TAUTULLI_TIMEOUT_MS` (default `20000`) if you see timeouts.
+- Large Tautulli databases can be slow to answer. Statistics calls wait up to `TAUTULLI_TIMEOUT_MS` (default `120000`, 2 minutes). Once loaded, Stats, Analytics and Users are served from cache and refreshed in the background, so pages open instantly after the first load.
 - Using `https://` with a self-signed certificate? Use `http://` on your local network, or set `ALLOW_INSECURE_TLS=true`.
 
 ### Live map style and API key
 
-The map works out of the box with a free dark map (Esri Dark Gray). To use a different style, open **Manage Servers → Live map**, pick a provider and paste its API key:
+The map works out of the box with NASA's Blue Marble earth imagery and live day/night shading (the dark side of the planet is shaded, and a marker shows where the sun is overhead). Open **Manage Servers → Live map** to change it:
 
-| Provider | Free API key |
-|----------|--------------|
-| Stadia Maps (Alidade Smooth Dark) | [client.stadiamaps.com/signup](https://client.stadiamaps.com/signup/) |
-| MapTiler (Dataviz Dark) | [cloud.maptiler.com](https://cloud.maptiler.com/) |
-| Mapbox (Dark) | [account.mapbox.com](https://account.mapbox.com/auth/signup/) |
+| Style | API key |
+|-------|---------|
+| NASA Blue Marble (default), NASA Earth at Night, Esri satellite, Esri Dark Gray | Not needed |
+| Stadia Maps (Alidade Smooth Dark) | Free at [client.stadiamaps.com/signup](https://client.stadiamaps.com/signup/) |
+| MapTiler (Dataviz Dark) | Free at [cloud.maptiler.com](https://cloud.maptiler.com/) |
+| Mapbox (Dark) | Free at [account.mapbox.com](https://account.mapbox.com/auth/signup/) |
 | Custom | Any `{z}/{x}/{y}` tile URL, with `{key}` where the key goes |
 
-The key is checked before it is saved, stays on the PlixMetrics server (map tiles are loaded through it), and tiles are cached in `DATA_DIR/cache/tiles`.
+Keys are checked before they are saved and stay on the PlixMetrics server (map tiles are loaded through it and cached in `DATA_DIR/cache/tiles`). Day/night shading can be turned off in the same place.
+
+### Location accuracy (MaxMind)
+
+Stream locations come from the viewer's IP address. The built-in database often only knows the country, so some streams appear in the middle of a country. For city-level locations:
+
+1. Create a free account at [maxmind.com/en/geolite2/signup](https://www.maxmind.com/en/geolite2/signup).
+2. In your MaxMind account, go to **Manage License Keys → Generate new license key**.
+3. In PlixMetrics, open **Manage Servers → Location accuracy**, enter your **Account ID** and **license key**, and click **Download and use MaxMind**.
+
+The GeoLite2 City database is downloaded to `DATA_DIR/geoip` and updated weekly. Paid GeoIP2 City is also supported.
+
+Streams from your own network (192.168.x.x and similar) have no public location, so they are shown at your server's location. It is detected from your public IP; set `HOME_LAT` and `HOME_LON` to place them exactly.
 
 ### 3. Mobile App (PWA) Setup 📱
 PlixMetrics is a Progressive Web App. You can install it on your phone for a native-like experience.
@@ -295,9 +308,10 @@ $env:PORT=8282; npm start
 | `DATA_DIR` | `./data` | Directory for SQLite database |
 | `JWT_SECRET` | (random) | Secret key for authentication tokens |
 | `NODE_ENV` | `production` | Environment mode |
-| `TAUTULLI_TIMEOUT_MS` | `20000` | Timeout for Tautulli API calls |
+| `TAUTULLI_TIMEOUT_MS` | `120000` | Timeout for Tautulli statistics, history and user calls |
 | `PLEX_TIMEOUT_MS` | `8000` | Timeout for direct Plex calls |
 | `ALLOW_INSECURE_TLS` | `false` | Accept self-signed HTTPS certificates for Tautulli and Plex |
+| `HOME_LAT` / `HOME_LON` | (detected) | Map position for streams from your local network |
 | `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn` or `error` |
 | `LOG_DIR` | `DATA_DIR/logs` | Directory for log files |
 | `LOG_MAX_BYTES` | `5242880` | Rotate the log file after this many bytes |
@@ -344,6 +358,7 @@ PlixMetrics/
 | `/api/stats` | GET | Get watch statistics |
 | `/api/system/version` | GET | Check for updates |
 | `/api/map/config` | GET/PUT | Live map provider and API key |
+| `/api/geoip/config` | GET/PUT/DELETE | MaxMind location database |
 | `/api/system/logs` | GET | Latest application log lines (`?lines=500`) |
 | `/api/health` | GET | Health check |
 

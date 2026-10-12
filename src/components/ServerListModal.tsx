@@ -4,6 +4,7 @@ import { ServerList } from './ServerList';
 import { PlexServer } from '../types';
 import { getLogsUrl } from '../api/client';
 import { MapSettings } from './MapSettings';
+import { GeoipSettings } from './GeoipSettings';
 
 interface ServerListModalProps {
     onClose: () => void;
@@ -37,6 +38,7 @@ export const ServerListModal: React.FC<ServerListModalProps> = ({ onClose, onEdi
                 <div className="flex-1 overflow-y-auto p-6">
                     <ServerList onEdit={onEditServer} />
                     <MapSettings />
+                    <GeoipSettings />
                 </div>
 
                 {/* Footer */}
