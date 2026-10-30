@@ -21,6 +21,8 @@ const UsersPage = lazy(() => import('./components/UsersPage').then(module => ({ 
 // ... other imports ...
 import { UserDetailsModal } from './components/UserDetailsModal';
 import { MobilePairingModal } from './components/MobilePairingModal';
+import { MapApiKeyModal } from './components/MapApiKeyModal';
+import { useMapApiKey } from './hooks/useMapApiKey';
 
 import { ServerListModal } from './components/ServerListModal';
 import { Skeleton } from './components/ui/Skeleton';
@@ -68,6 +70,8 @@ function AppDashboard() {
     const [currentView, setCurrentView] = useState<'dashboard' | 'statistics' | 'analytics' | 'users'>('dashboard');
     const [selectedUser, setSelectedUser] = useState<{ username: string, serverId?: number | string } | null>(null);
     const [showMobilePairing, setShowMobilePairing] = useState(false);
+    const [showMapApiKey, setShowMapApiKey] = useState(false);
+    const { apiKey: mapApiKey, isReady: isMapApiKeyReady } = useMapApiKey();
 
     // Sidebar Order State with Persistence
     const [sidebarOrder, setSidebarOrder] = useState<string[]>(() => {
@@ -317,10 +321,20 @@ function AppDashboard() {
                 return (
                     <section className="space-y-6">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-100 px-1 flex items-center gap-3">
-                                <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
-                                {t('dashboard.liveUserMap')}
-                            </h2>
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl font-bold text-slate-100 px-1 flex items-center gap-3">
+                                    <span className="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+                                    {t('dashboard.liveUserMap')}
+                                </h2>
+                                <button
+                                    onClick={() => setShowMapApiKey(true)}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 transition-colors"
+                                    title={mapApiKey ? t('liveMap.apiKeyConfigured') : t('liveMap.apiKeyMissing')}
+                                >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${mapApiKey ? 'bg-emerald-400' : isMapApiKeyReady ? 'bg-amber-400' : 'bg-slate-500'}`}></span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider">{t('liveMap.apiKey')}</span>
+                                </button>
+                            </div>
                             <div className="flex gap-1">
                                 {controls}
                             </div>
@@ -587,6 +601,13 @@ function AppDashboard() {
                 {
                     showMobilePairing && (
                         <MobilePairingModal onClose={() => setShowMobilePairing(false)} />
+                    )
+                }
+
+                {/* Map API Key Modal */}
+                {
+                    showMapApiKey && (
+                        <MapApiKeyModal onClose={() => setShowMapApiKey(false)} />
                     )
                 }
 

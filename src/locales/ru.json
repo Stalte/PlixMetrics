@@ -211,7 +211,20 @@
     "liveMap": {
         "activeStream": "Активный поток",
         "group": "Группа",
-        "list": "Список"
+        "list": "Список",
+        "apiKey": "API-ключ",
+        "apiKeyTitle": "API-ключ карты",
+        "apiKeyDescription": "CARTO требует бесплатный API-ключ, чтобы показывать карту без водяного знака \"API KEY REQUIRED\".",
+        "getApiKey": "Получить бесплатный API-ключ",
+        "apiKeyPlaceholder": "Вставьте ваш API-ключ CARTO",
+        "saveApiKey": "Сохранить",
+        "savingApiKey": "Сохранение...",
+        "removeApiKey": "Удалить",
+        "apiKeySaved": "API-ключ карты сохранён",
+        "apiKeyRemoved": "API-ключ карты удалён",
+        "apiKeySaveFailed": "Не удалось сохранить API-ключ карты",
+        "apiKeyConfigured": "API-ключ карты настроен",
+        "apiKeyMissing": "API-ключ карты не задан"
     },
     "hooks": {
         "failedToLoadServers": "Не удалось загрузить серверы."

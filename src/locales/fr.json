@@ -211,7 +211,20 @@
     "liveMap": {
         "activeStream": "Flux Actif",
         "group": "Groupe",
-        "list": "Liste"
+        "list": "Liste",
+        "apiKey": "Clé API",
+        "apiKeyTitle": "Clé API de la Carte",
+        "apiKeyDescription": "CARTO exige une clé API gratuite pour afficher la carte sans le filigrane \"API KEY REQUIRED\".",
+        "getApiKey": "Obtenir une clé API gratuite",
+        "apiKeyPlaceholder": "Collez votre clé API CARTO",
+        "saveApiKey": "Enregistrer",
+        "savingApiKey": "Enregistrement...",
+        "removeApiKey": "Supprimer",
+        "apiKeySaved": "Clé API de la carte enregistrée",
+        "apiKeyRemoved": "Clé API de la carte supprimée",
+        "apiKeySaveFailed": "Impossible d'enregistrer la clé API de la carte",
+        "apiKeyConfigured": "Clé API de la carte configurée",
+        "apiKeyMissing": "Clé API de la carte manquante"
     },
     "hooks": {
         "failedToLoadServers": "Échec du chargement des serveurs."

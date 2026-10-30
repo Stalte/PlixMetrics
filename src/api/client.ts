@@ -54,6 +54,12 @@ export const systemApi = {
     update: () => api.post('/api/system/update')
 };
 
+// Config API
+export const configApi = {
+    getMapKey: () => api.get('/api/config/map-key'),
+    setMapKey: (apiKey: string) => api.put('/api/config/map-key', { apiKey })
+};
+
 // Image proxy helper
 export const getImageProxyUrl = (serverId: number | string, img: string, width = 200) => {
     const params = new URLSearchParams({

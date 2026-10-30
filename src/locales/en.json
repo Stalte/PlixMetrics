@@ -212,7 +212,20 @@
     "liveMap": {
         "activeStream": "Active Stream",
         "group": "Group",
-        "list": "List"
+        "list": "List",
+        "apiKey": "API Key",
+        "apiKeyTitle": "Map API Key",
+        "apiKeyDescription": "CARTO requires a free API key to show the map without the \"API KEY REQUIRED\" watermark.",
+        "getApiKey": "Get a free API key",
+        "apiKeyPlaceholder": "Paste your CARTO API key",
+        "saveApiKey": "Save",
+        "savingApiKey": "Saving...",
+        "removeApiKey": "Remove",
+        "apiKeySaved": "Map API key saved",
+        "apiKeyRemoved": "Map API key removed",
+        "apiKeySaveFailed": "Failed to save the map API key",
+        "apiKeyConfigured": "Map API key configured",
+        "apiKeyMissing": "Map API key missing"
     },
     "hooks": {
         "failedToLoadServers": "Failed to load servers."

@@ -1,8 +1,12 @@
 import express from 'express';
 import os from 'os';
 import axios from 'axios';
+import { db } from '../db/index.js';
 
 const router = express.Router();
+
+// system_config key holding the CARTO basemaps API key used by the live map
+const MAP_API_KEY_CONFIG = 'carto_api_key';
 
 interface NetworkInfo {
     localIp: string | null;
@@ -84,6 +88,24 @@ router.get('/info', async (req, res) => {
     };
 
     res.json(info);
+});
+
+router.get('/map-key', (req, res) => {
+    const row = db.prepare('SELECT value FROM system_config WHERE key = ?').get(MAP_API_KEY_CONFIG) as { value: string } | undefined;
+    res.json({ apiKey: row?.value || '' });
+});
+
+router.put('/map-key', (req, res) => {
+    const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+
+    // An empty key removes the stored one (map falls back to keyless tiles)
+    if (apiKey) {
+        db.prepare('INSERT OR REPLACE INTO system_config (key, value) VALUES (?, ?)').run(MAP_API_KEY_CONFIG, apiKey);
+    } else {
+        db.prepare('DELETE FROM system_config WHERE key = ?').run(MAP_API_KEY_CONFIG);
+    }
+
+    res.json({ apiKey });
 });
 
 export default router;

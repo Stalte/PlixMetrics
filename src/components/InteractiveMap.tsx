@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { ActiveSession } from '../types';
+import { useMapApiKey } from '../hooks/useMapApiKey';
 
 interface InteractiveMapProps {
     sessions: ActiveSession[];
@@ -109,7 +110,14 @@ const createClusterCustomIcon = (cluster: any) => {
     });
 };
 
+// CARTO watermarks keyless tile requests, so use the keyed endpoint once an API key is configured
+const getTileUrl = (apiKey: string) => apiKey
+    ? `https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(apiKey)}`
+    : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
 const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableClustering = true, onUserClick, hideControls = false }) => {
+    const { apiKey, isReady: isApiKeyReady } = useMapApiKey();
+
     const validSessions = useMemo(() => {
         return sessions.filter(s =>
             s.latitude !== undefined &&
@@ -143,12 +151,15 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableCluster
             <AutoZoom sessions={validSessions} />
             {!hideControls && <CustomZoomControl />}
 
-            <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                subdomains="abcd"
-                maxZoom={20}
-            />
+            {/* Wait for the key so we don't request watermarked tiles first */}
+            {isApiKeyReady && (
+                <TileLayer
+                    url={getTileUrl(apiKey)}
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    subdomains="abcd"
+                    maxZoom={20}
+                />
+            )}
 
             {enableClustering ? (
                 <MarkerClusterGroup
