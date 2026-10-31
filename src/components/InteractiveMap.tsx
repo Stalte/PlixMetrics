@@ -142,12 +142,8 @@ const createClusterCustomIcon = (cluster: any) => {
 const InteractiveMap: React.FC<InteractiveMapProps> = ({ sessions, enableClustering = true, onUserClick, hideControls = false, followSessions = false, fitInsets = DEFAULT_INSETS }) => {
     const { data: mapConfig } = useMapConfig();
     const validSessions = useMemo(() => {
-        return sessions.filter(s =>
-            s.latitude !== undefined &&
-            s.longitude !== undefined &&
-            !isNaN(s.latitude) &&
-            !isNaN(s.longitude)
-        );
+        // Number.isFinite also drops null, which a session with an unknown location can carry
+        return sessions.filter(s => Number.isFinite(s.latitude) && Number.isFinite(s.longitude));
     }, [sessions]);
 
     const defaultCenter: [number, number] = [40.4168, -3.7038];
