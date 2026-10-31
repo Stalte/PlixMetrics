@@ -69,7 +69,7 @@ function locate(ip: string): GeoLocation | null {
     const mm = maxmindLookup(ip);
     if (mm) return { lat: mm.lat, lon: mm.lon, city: mm.city, region: mm.region, country: mm.country };
     const geo = geoip.lookup(ip);
-    if (geo && geo.ll) return { lat: geo.ll[0], lon: geo.ll[1], city: geo.city || undefined, region: geo.region || undefined, country: geo.country || undefined };
+    if (geo && geo.ll && Number.isFinite(geo.ll[0]) && Number.isFinite(geo.ll[1])) return { lat: geo.ll[0], lon: geo.ll[1], city: geo.city || undefined, region: geo.region || undefined, country: geo.country || undefined };
     return null;
 }
 

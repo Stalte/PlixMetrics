@@ -211,7 +211,20 @@
     "liveMap": {
         "activeStream": "活跃串流",
         "group": "分组",
-        "list": "列表"
+        "list": "列表",
+        "apiKey": "API 密钥",
+        "apiKeyTitle": "地图 API 密钥",
+        "apiKeyDescription": "CARTO 需要一个免费的 API 密钥才能显示没有 \"API KEY REQUIRED\" 水印的地图。",
+        "getApiKey": "获取免费 API 密钥",
+        "apiKeyPlaceholder": "粘贴您的 CARTO API 密钥",
+        "saveApiKey": "保存",
+        "savingApiKey": "保存中...",
+        "removeApiKey": "删除",
+        "apiKeySaved": "地图 API 密钥已保存",
+        "apiKeyRemoved": "地图 API 密钥已删除",
+        "apiKeySaveFailed": "无法保存地图 API 密钥",
+        "apiKeyConfigured": "地图 API 密钥已配置",
+        "apiKeyMissing": "缺少地图 API 密钥"
     },
     "hooks": {
         "failedToLoadServers": "加载服务器失败。"

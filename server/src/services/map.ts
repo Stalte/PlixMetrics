@@ -51,6 +51,15 @@ export const MAP_PROVIDERS: MapProvider[] = [
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
     },
     {
+        id: 'carto',
+        name: 'CARTO Dark Matter',
+        requiresKey: true,
+        maxZoom: 20,
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        signupUrl: 'https://carto.com/basemaps/apikey',
+        url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key={key}'
+    },
+    {
         id: 'stadia',
         name: 'Stadia Maps - Alidade Smooth Dark',
         requiresKey: true,
@@ -125,11 +134,20 @@ function readConfig(key: string): string {
     return row?.value ?? '';
 }
 
+/** Where the original PlixMetrics (1.4.9+) stores its CARTO key. */
+const LEGACY_CARTO_KEY = 'carto_api_key';
+
 export function getMapSettings(): MapSettings {
-    const provider = readConfig(KEYS.provider);
+    let provider = readConfig(KEYS.provider);
+    let apiKey = readConfig(KEYS.api_key);
+    // A CARTO key saved by the original app, before any map style was chosen here
+    if (!provider && readConfig(LEGACY_CARTO_KEY)) {
+        provider = 'carto';
+        apiKey = readConfig(LEGACY_CARTO_KEY);
+    }
     return {
         provider: MAP_PROVIDERS.some((p) => p.id === provider) ? provider : DEFAULT_PROVIDER,
-        api_key: readConfig(KEYS.api_key),
+        api_key: apiKey,
         custom_url: readConfig(KEYS.custom_url),
         day_night: readConfig(KEYS.day_night) !== 'false',
         labels: readConfig(KEYS.labels) !== 'false',

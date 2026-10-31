@@ -211,7 +211,20 @@
     "liveMap": {
         "activeStream": "Aktiver Stream",
         "group": "Gruppe",
-        "list": "Liste"
+        "list": "Liste",
+        "apiKey": "API-Schlüssel",
+        "apiKeyTitle": "Karten-API-Schlüssel",
+        "apiKeyDescription": "CARTO benötigt einen kostenlosen API-Schlüssel, um die Karte ohne das Wasserzeichen \"API KEY REQUIRED\" anzuzeigen.",
+        "getApiKey": "Kostenlosen API-Schlüssel holen",
+        "apiKeyPlaceholder": "CARTO-API-Schlüssel hier einfügen",
+        "saveApiKey": "Speichern",
+        "savingApiKey": "Speichern...",
+        "removeApiKey": "Entfernen",
+        "apiKeySaved": "Karten-API-Schlüssel gespeichert",
+        "apiKeyRemoved": "Karten-API-Schlüssel entfernt",
+        "apiKeySaveFailed": "Karten-API-Schlüssel konnte nicht gespeichert werden",
+        "apiKeyConfigured": "Karten-API-Schlüssel konfiguriert",
+        "apiKeyMissing": "Karten-API-Schlüssel fehlt"
     },
     "hooks": {
         "failedToLoadServers": "Server konnten nicht geladen werden."

@@ -211,7 +211,20 @@
     "liveMap": {
         "activeStream": "Stream Ativo",
         "group": "Grupo",
-        "list": "Lista"
+        "list": "Lista",
+        "apiKey": "Chave API",
+        "apiKeyTitle": "Chave API do Mapa",
+        "apiKeyDescription": "A CARTO exige uma chave API gratuita para mostrar o mapa sem a marca de água \"API KEY REQUIRED\".",
+        "getApiKey": "Obter uma chave API gratuita",
+        "apiKeyPlaceholder": "Cole aqui a sua chave API da CARTO",
+        "saveApiKey": "Guardar",
+        "savingApiKey": "A guardar...",
+        "removeApiKey": "Remover",
+        "apiKeySaved": "Chave API do mapa guardada",
+        "apiKeyRemoved": "Chave API do mapa removida",
+        "apiKeySaveFailed": "Não foi possível guardar a chave API do mapa",
+        "apiKeyConfigured": "Chave API do mapa configurada",
+        "apiKeyMissing": "Falta a chave API do mapa"
     },
     "hooks": {
         "failedToLoadServers": "Falha ao carregar os servidores."
